@@ -4,6 +4,7 @@ import App from './App.jsx';
 import './index.css';
 import { registerServiceWorker } from './pwa';
 import './i18n/i18n';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 registerServiceWorker();
 

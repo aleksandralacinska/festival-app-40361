@@ -10,6 +10,7 @@
     "lint": "eslint src --ext .js,.jsx"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.0.0",
     "@react-google-maps/api": "^2.20.7",
     "axios": "^1.11.0",
     "i18next": "^25.4.2",
