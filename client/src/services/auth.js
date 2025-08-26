@@ -1,15 +1,16 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-export async function loginWithPin(teamName, pin) {
+export async function loginWithPin(slug, pin) {
   const r = await fetch(`${API_URL}/api/auth/pin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ teamName, pin })
+    body: JSON.stringify({ slug, pin })
   });
   if (!r.ok) throw new Error('pin_login_failed');
   const data = await r.json();
   localStorage.setItem('auth_token', data.token);
   localStorage.setItem('team_name', data.team?.name || '');
+  localStorage.setItem('team_slug', data.team?.slug || '');
   return data;
 }
 
@@ -20,4 +21,13 @@ export function getToken() {
 export function logout() {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('team_name');
+  localStorage.removeItem('team_slug');
+}
+
+// do UI
+export function getTeamName() {
+  return localStorage.getItem('team_name') || '';
+}
+export function getTeamSlug() {
+  return localStorage.getItem('team_slug') || '';
 }

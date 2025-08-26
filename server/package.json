@@ -6,6 +6,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "db:init": "node scripts/init-db.js",
+    "db:migrate:slug": "node scripts/migrate-slug.js",
     "pin:set": "node scripts/set-team-pin.js"
   },
   "keywords": [],

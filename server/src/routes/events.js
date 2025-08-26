@@ -4,11 +4,14 @@ const { pool } = require('../config/db');
 
 router.get('/', async (req, res) => {
   try {
+    const onlyPublic = req.query.all !== '1';
+    const where = onlyPublic ? 'WHERE e.is_public = TRUE' : '';
     const { rows } = await pool.query(
       `SELECT e.id, e.name, e.description, e.start_time, e.end_time,
-              e.location_id, l.name as location_name
+              e.location_id, l.name as location_name, e.category, e.team_id, e.is_public
        FROM events e
        LEFT JOIN locations l ON l.id = e.location_id
+       ${where}
        ORDER BY e.start_time ASC`
     );
     res.json(rows);

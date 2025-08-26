@@ -4,7 +4,7 @@ import { getMyTeam } from '../services/team';
 
 export default function TeamPage() {
   const [teamData, setTeamData] = useState(null);
-  const [form, setForm] = useState({ teamName: '', pin: '' });
+  const [form, setForm] = useState({ slug: '', pin: '' });
   const [error, setError] = useState('');
   const hasToken = !!getToken();
 
@@ -20,7 +20,7 @@ export default function TeamPage() {
     e.preventDefault();
     setError('');
     try {
-      await loginWithPin(form.teamName, form.pin);
+      await loginWithPin(form.slug, form.pin);
       const data = await getMyTeam();
       setTeamData(data);
     } catch (err) {
@@ -35,13 +35,13 @@ export default function TeamPage() {
         <h2>Dostęp zespołu (PIN)</h2>
         <div className="card">
           <form onSubmit={onSubmit}>
-            <label>Nazwa zespołu<br/>
-              <input
-                value={form.teamName}
-                onChange={e => setForm(f => ({ ...f, teamName: e.target.value }))}
-                required
-              />
-            </label><br/><br/>
+          <label>Nazwa skrócona (slug)<br/>
+            <input
+              value={form.slug}
+              onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
+              required
+            />
+          </label><br/><br/>
             <label>PIN<br/>
               <input
                 type="password"
