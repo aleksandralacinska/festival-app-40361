@@ -28,15 +28,15 @@ SELECT 'Sala B (ECK)','rehearsal',53.82090,22.34620,'Sala prób B w ECK'
 WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name='Sala B (ECK)');
 
 INSERT INTO locations (name, type, lat, lng, description)
-SELECT 'Jezioro Ełckie (Kajaki)','attraction',53.8178,22.3640,'Spływ kajakowy'
+SELECT 'Jezioro Ełckie (Kajaki)','attraction',53.82640960713833, 22.33883008033166,'Spływ kajakowy'
 WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name='Jezioro Ełckie (Kajaki)');
 
 INSERT INTO locations (name, type, lat, lng, description)
-SELECT 'Stacja Kolejki Wąskotorowej','attraction',53.8267,22.3634,'Wycieczka kolejką wąskotorową'
+SELECT 'Stacja Kolejki Wąskotorowej','attraction',53.82592702339106, 22.36382319246922,'Wycieczka kolejką wąskotorową'
 WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name='Stacja Kolejki Wąskotorowej');
 
 INSERT INTO locations (name, type, lat, lng, description)
-SELECT 'Park Miejski (Gra terenowa)','attraction',53.8262,22.3559,'Gra terenowa'
+SELECT 'Park Miejski (Gra terenowa)','attraction',53.823875088284936, 22.3512618741497039,'Gra terenowa'
 WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name='Park Miejski (Gra terenowa)');
 
 -- === ZESPOŁY (UPSERT po slug; wymagany unikalny indeks na teams.slug) ===
