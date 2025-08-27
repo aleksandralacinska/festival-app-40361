@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import { fetchLocations } from '../services/locations';
 import { useLoadScript } from '@react-google-maps/api';
+import { useTranslation } from 'react-i18next';
 
 const palette = {
   accent: '#fbb800',
@@ -11,28 +12,14 @@ const palette = {
   bgAlt: '#ececec',
 };
 
-const mapCenter = { lat: 53.822, lng: 22.36 }; // Ełk
-
-const containerStyle = {
-  width: '100%',
-  height: '78vh',
-  borderRadius: '12px',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-};
-
-const libraries = []; // można dopisać 'places' w przyszłości
-
-// (opcjonalnie) różne kolory pinów wg typu
-const typeToEmoji = {
-  stage: '🎤',
-  hotel: '🏨',
-  info: 'ℹ️',
-  parade: '🪗',
-  rehearsal: '🎼',
-  attraction: '⭐',
-};
+const mapCenter = { lat: 53.822, lng: 22.36 };
+const containerStyle = { width: '100%', height: '78vh', borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.06)' };
+const libraries = [];
+const typeToEmoji = { stage: '🎤', hotel: '🏨', info: 'ℹ️', parade: '🪗', rehearsal: '🎼', attraction: '⭐' };
 
 export default function MapPage() {
+  const { t } = useTranslation();
+
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
@@ -40,7 +27,7 @@ export default function MapPage() {
 
   const [locations, setLocations] = useState([]);
   const [err, setErr] = useState('');
-  const [selected, setSelected] = useState(null); // {id,...}
+  const [selected, setSelected] = useState(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -51,55 +38,43 @@ export default function MapPage() {
         if (!ignore) setLocations(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error(e);
-        if (!ignore) setErr('Nie udało się pobrać lokalizacji.');
+        if (!ignore) setErr(t('error_locations'));
       }
     })();
     return () => { ignore = true; };
-  }, []);
+  }, [t]);
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map;
-    // Dopasuj widok do wszystkich punktów, jeśli są
     try {
       if (locations.length > 0 && window.google?.maps) {
         const bounds = new window.google.maps.LatLngBounds();
         locations.forEach((loc) => bounds.extend({ lat: Number(loc.lat), lng: Number(loc.lng) }));
-        map.fitBounds(bounds, 64); // padding
+        map.fitBounds(bounds, 64);
       } else {
         map.setCenter(mapCenter);
         map.setZoom(13);
       }
     } catch {
-      // w razie czego fallback
       map.setCenter(mapCenter);
       map.setZoom(13);
     }
   }, [locations]);
 
   const onMapUnmount = useCallback(() => { mapRef.current = null; }, []);
-
-  const markers = useMemo(() => {
-    return locations.map((loc) => ({
-      ...loc,
-      position: { lat: Number(loc.lat), lng: Number(loc.lng) },
-    }));
-  }, [locations]);
+  const markers = useMemo(() => locations.map((loc) => ({ ...loc, position: { lat: Number(loc.lat), lng: Number(loc.lng) } })), [locations]);
 
   if (loadError) {
-    return <div style={{ padding: 24, color: 'crimson', fontFamily: 'Montserrat, sans-serif' }}>
-      Błąd ładowania Map Google.
-    </div>;
+    return <div style={{ padding: 24, color: 'crimson', fontFamily: 'Montserrat, sans-serif' }}>{t('error_locations')}</div>;
   }
   if (!isLoaded) {
-    return <div style={{ padding: 24, fontFamily: 'Montserrat, sans-serif' }}>
-      Ładowanie mapy…
-    </div>;
+    return <div style={{ padding: 24, fontFamily: 'Montserrat, sans-serif' }}>{t('loading')}</div>;
   }
 
   return (
     <div style={{ fontFamily: 'Montserrat, sans-serif', padding: 16, background: palette.bgAlt, minHeight: 'calc(100vh - 120px)' }}>
-      <h1 style={{ margin: '0 0 12px', color: palette.text }}>Mapa</h1>
-      <p style={{ margin: '0 0 12px', color: palette.textMuted }}>Pinezki pokazują lokalizacje festiwalu (z bazy danych).</p>
+      <h1 style={{ margin: '0 0 12px', color: palette.text }}>{t('map')}</h1>
+      <p style={{ margin: '0 0 12px', color: palette.textMuted }}>{t('map_subtitle')}</p>
       {err && <div style={{ color: 'crimson', marginBottom: 8 }}>{err}</div>}
 
       <GoogleMap
@@ -113,7 +88,6 @@ export default function MapPage() {
           clickableIcons: false,
           gestureHandling: 'greedy',
           styles: [
-            // delikatny styling
             { elementType: 'geometry', stylers: [{ saturation: -10 }] },
             { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
           ],
@@ -124,51 +98,33 @@ export default function MapPage() {
             key={m.id}
             position={m.position}
             onClick={() => setSelected(m)}
-            // lekka personalizacja: label z emoji wg typu (nie zmienia „pin’a”)
             label={typeToEmoji[m.type] ? { text: typeToEmoji[m.type], fontSize: '16px' } : undefined}
             title={`${m.name} (${m.type})`}
           />
         ))}
 
         {selected && (
-          <InfoWindow
-            position={selected.position}
-            onCloseClick={() => setSelected(null)}
-          >
+          <InfoWindow position={selected.position} onCloseClick={() => setSelected(null)}>
             <div style={{ maxWidth: 220 }}>
               <div style={{ fontWeight: 700, marginBottom: 4, color: palette.text }}>{selected.name}</div>
               <div style={{ color: palette.textMuted, fontSize: 12, marginBottom: 6 }}>
-                Typ: {selected.type}
+                {t('type_label')}: {selected.type}
               </div>
-              {selected.description && (
-                <div style={{ fontSize: 12, marginBottom: 8 }}>
-                  {selected.description}
-                </div>
-              )}
+              {selected.description && <div style={{ fontSize: 12, marginBottom: 8 }}>{selected.description}</div>}
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`}
                 target="_blank" rel="noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  textDecoration: 'none',
-                  background: palette.accent,
-                  color: '#000',
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  fontWeight: 700,
-                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', background: palette.accent, color: '#000', padding: '6px 10px', borderRadius: 8, fontWeight: 700 }}
               >
                 <i className="fa-solid fa-route" aria-hidden="true" />
-                Pokaż trasę
+                {t('show_route')}
               </a>
             </div>
           </InfoWindow>
         )}
       </GoogleMap>
 
-      <div style={{ height: 12 }} /> {/* odstęp od dolnego paska */}
+      <div style={{ height: 12 }} />
     </div>
   );
 }

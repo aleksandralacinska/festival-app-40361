@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { loginWithPin, getToken, logout } from '../services/auth';
 import { getMyTeam } from '../services/team';
+import { useTranslation } from 'react-i18next';
 
 export default function TeamPage() {
+  const { t, i18n } = useTranslation();
   const [teamData, setTeamData] = useState(null);
   const [form, setForm] = useState({ slug: '', pin: '' });
   const [error, setError] = useState('');
@@ -12,9 +14,9 @@ export default function TeamPage() {
     if (hasToken) {
       getMyTeam()
         .then(setTeamData)
-        .catch(() => setError('Nie udało się pobrać danych zespołu'));
+        .catch(() => setError(t('team_fetch_error')));
     }
-  }, [hasToken]);
+  }, [hasToken, t]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -25,24 +27,29 @@ export default function TeamPage() {
       setTeamData(data);
     } catch (err) {
       console.error('PIN login error:', err);
-      setError('Błędny PIN lub nazwa zespołu');
+      setError(t('bad_pin_or_slug'));
     }
   };
+
+  const locale = i18n.language === 'en' ? 'en-US' : 'pl-PL';
+  const fmtDate = (d) => new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(d));
 
   if (!hasToken || !teamData) {
     return (
       <>
-        <h2>Dostęp zespołu (PIN)</h2>
+        <h2>{t('team_access')}</h2>
         <div className="card">
           <form onSubmit={onSubmit}>
-          <label>Nazwa skrócona (slug)<br/>
-            <input
-              value={form.slug}
-              onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
-              required
-            />
-          </label><br/><br/>
-            <label>PIN<br/>
+            <label>
+              {t('slug_label')}<br/>
+              <input
+                value={form.slug}
+                onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
+                required
+              />
+            </label><br/><br/>
+            <label>
+              {t('pin_label')}<br/>
               <input
                 type="password"
                 value={form.pin}
@@ -50,7 +57,7 @@ export default function TeamPage() {
                 required
               />
             </label><br/><br/>
-            <button className="btn" type="submit">Zaloguj</button>
+            <button className="btn" type="submit">{t('login')}</button>
             {error && <p style={{ color: 'crimson' }}>{error}</p>}
           </form>
         </div>
@@ -65,20 +72,20 @@ export default function TeamPage() {
       <h2>{team.name}</h2>
       {lodging && (
         <div className="card">
-          <b>Nocleg:</b> {lodging.name}<br/>
+          <b>{t('lodging')}:</b> {lodging.name}<br/>
           <small>{lodging.description}</small>
         </div>
       )}
-      <h3>Plan zespołu</h3>
+      <h3>{t('team_plan')}</h3>
       {(events && events.length ? events : []).map(ev => (
         <div className="card" key={ev.id}>
-          <strong>{new Date(ev.start_time).toLocaleString()}</strong><br/>
-          {ev.name} — {ev.location_name || 'TBA'}
+          <strong>{fmtDate(ev.start_time)}</strong><br/>
+          {ev.name} — {ev.location_name || t('tba')}
         </div>
       ))}
       <br/>
       <button className="btn" onClick={() => { logout(); window.location.reload(); }}>
-        Wyloguj
+        {t('logout')}
       </button>
     </>
   );
