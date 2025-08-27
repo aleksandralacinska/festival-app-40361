@@ -37,6 +37,7 @@ const Nav = () => (
 
 export default function App() {
   const [status, setStatus] = useState('checking...');
+  const [online, setOnline] = useState(navigator.onLine);
 
   useEffect(() => {
     getHealth()
@@ -44,9 +45,38 @@ export default function App() {
       .catch(() => setStatus('api error'));
   }, []);
 
+  // Reaktywny status offline/online
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+    };
+  }, []);
+
   return (
     <BrowserRouter>
       <div className="container" style={{ paddingBottom: 80 }}>
+        {/* BANER OFFLINE */}
+        {!online && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              background: '#ffe08a',
+              color: '#000',
+              padding: 8,
+              borderRadius: 8,
+              margin: '12px 0'
+            }}
+          >
+            Jesteś offline — część danych może być niedostępna.
+          </div>
+        )}
+
         <header className="card" style={{ marginBottom: 16 }}>
           <h1 style={{ color: 'var(--primary)', marginBottom: 8 }}>Festival PWA</h1>
           <p style={{ margin: 0, color: 'var(--gray-700)' }}>API status: {status}</p>

@@ -6,40 +6,37 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      devOptions: { enabled: true },
       registerType: 'autoUpdate',
+      manifest: false,
       includeAssets: [
         'favicon.svg',
         'icons/icon-192.png',
-        'icons/icon-512.png'
+        'icons/icon-512.png',
+        'icons/maskable-512.png'
       ],
-      manifest: {
-        name: 'Festival PWA',
-        short_name: 'Festival',
-        description: 'PWA dla międzynarodowego festiwalu (harmonogram, mapa, powiadomienia).',
-        theme_color: '#fbb800',
-        background_color: '#ffffff',
-        display: 'standalone',
-        start_url: '/',
-        icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }
-        ]
-      },
+
       workbox: {
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         navigateFallback: '/index.html',
         runtimeCaching: [
+          // API (events, locations) – NetworkFirst z krótkim timeoutem
           {
-            urlPattern: /^http:\/\/localhost:4000\/api\//,
+            urlPattern: /^https?:\/\/localhost:4000\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
               networkTimeoutSeconds: 5
             }
           },
+          // Google Maps API – online only
           {
-            // uzupełnić
-            urlPattern: /^https:\/\/(maps|maps\.googleapis)\.googleapis\.com\/.*/i,
+            urlPattern: /^https:\/\/maps\.googleapis\.com\/.*/i,
+            handler: 'NetworkOnly'
+          },
+          {
+            urlPattern: /^https:\/\/maps\.gstatic\.com\/.*/i,
             handler: 'NetworkOnly'
           }
         ]
