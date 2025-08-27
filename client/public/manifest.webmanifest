@@ -1,0 +1,33 @@
+{
+    "name": "Festival PWA",
+    "short_name": "Festival",
+    "description": "Progresywna aplikacja webowa festiwalu: harmonogram, mapa, zespoły.",
+    "lang": "pl",
+    "dir": "ltr",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#fbb800",
+    "orientation": "portrait",
+    "icons": [
+      { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+      { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+      { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
+    ],
+    "shortcuts": [
+      {
+        "name": "Harmonogram",
+        "short_name": "Plan",
+        "url": "/schedule",
+        "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      },
+      {
+        "name": "Mapa",
+        "short_name": "Mapa",
+        "url": "/map",
+        "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      }
+    ]
+  }
+  
