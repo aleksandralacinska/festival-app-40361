@@ -1,7 +1,7 @@
 {
-  "welcome": "Welcome to the Festival",
+  "welcome": "Welcome to the Festival in Ełk",
   "home": "Home",
-  "home_card_intro": "Upcoming events, shortcuts and important notices.",
+  "home_card_intro": "Here you will find all the necessary information about the festival.",
   "schedule": "Schedule",
   "schedule_subtitle": "Concerts, parade, awards and fireworks.",
   "map": "Map",
@@ -38,5 +38,25 @@
   "lodging": "Lodging",
   "team_plan": "Team schedule",
   "logout": "Log out",
-  "tba": "TBA"
+  "tba": "TBA",
+  
+  "notifications_title": "Notifications",
+  "notifications_status_on": "Enabled",
+  "notifications_status_off": "Disabled",
+  "notifications_status_blocked": "Blocked in browser",
+  "notifications_status_unsupported": "Not supported in this browser",
+
+  "notifications_enable": "Enable notifications",
+  "notifications_disable": "Disable notifications",
+  "notifications_enabling": "Enabling…",
+  "notifications_disabling": "Disabling…",
+
+  "notifications_toast_enabled": "Notifications enabled ✅",
+  "notifications_toast_disabled": "Notifications disabled",
+  "notifications_toast_enable_failed": "Failed to enable notifications.",
+  "notifications_toast_disable_failed": "Failed to disable notifications.",
+  "notifications_toast_permission_denied": "Notifications permission denied.",
+
+  "notifications_permission_blocked_hint": "Change permissions in your browser settings to enable notifications."
+  
 }

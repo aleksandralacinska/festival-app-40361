@@ -1,7 +1,7 @@
 {
-  "welcome": "Witaj na Festiwalu",
+  "welcome": "Witaj na Festiwalu w Ełku",
   "home": "Start",
-  "home_card_intro": "Najbliższe wydarzenia, skróty i ważne komunikaty.",
+  "home_card_intro": "Znajdziesz tu wszystkie niezbędne informacje dotyczące festiwalu.",
   "schedule": "Harmonogram",
   "schedule_subtitle": "Koncerty, parada, ceremonia i fajerwerki.",
   "map": "Mapa",
@@ -38,5 +38,25 @@
   "lodging": "Nocleg",
   "team_plan": "Plan zespołu",
   "logout": "Wyloguj",
-  "tba": "TBA"
+  "tba": "TBA",
+  
+  "notifications_title": "Powiadomienia",
+  "notifications_status_on": "Włączone",
+  "notifications_status_off": "Wyłączone",
+  "notifications_status_blocked": "Zablokowane w przeglądarce",
+  "notifications_status_unsupported": "Brak wsparcia w przeglądarce",
+
+  "notifications_enable": "Włącz powiadomienia",
+  "notifications_disable": "Wyłącz powiadomienia",
+  "notifications_enabling": "Włączanie…",
+  "notifications_disabling": "Wyłączanie…",
+
+  "notifications_toast_enabled": "Powiadomienia włączone ✅",
+  "notifications_toast_disabled": "Powiadomienia wyłączone",
+  "notifications_toast_enable_failed": "Nie udało się włączyć powiadomień.",
+  "notifications_toast_disable_failed": "Błąd wyłączania powiadomień",
+  "notifications_toast_permission_denied": "Powiadomienia zablokowane w przeglądarce.",
+
+  "notifications_permission_blocked_hint": "Zmień uprawnienia w ustawieniach przeglądarki, aby włączyć powiadomienia."
+  
 }

@@ -42,7 +42,8 @@ const Nav = () => (
 );
 
 export default function App() {
-  const [status, setStatus] = useState('checking...');
+  // const [status, setStatus] = useState('checking...');
+  const [setStatus] = useState('checking...');
   const [online, setOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -84,8 +85,8 @@ export default function App() {
         )}
 
         <header className="card" style={{ marginBottom: 16 }}>
-          <h1 style={{ color: 'var(--primary)', marginBottom: 8 }}>Festival PWA</h1>
-          <p style={{ margin: 0, color: 'var(--gray-700)' }}>API status: {status}</p>
+          <h1 style={{ color: 'var(--primary)', marginBottom: 8 }}>Festival APP</h1>
+          {/* <p style={{ margin: 0, color: 'var(--gray-700)' }}>API status: {status}</p> */}
         </header>
 
         <Routes>
