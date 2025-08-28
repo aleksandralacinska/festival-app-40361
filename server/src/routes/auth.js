@@ -11,6 +11,11 @@ router.post('/pin', pinLoginValidator, async (req, res, next) => {
     const slug = String(req.body.slug).toLowerCase();
     const pin = String(req.body.pin);
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[AUTH PIN] content-type=', req.headers['content-type']);
+      console.log('[AUTH PIN] body=', req.body);
+    }
+
     const { rows } = await pool.query(
       'SELECT id, name, slug, pin_hash FROM teams WHERE slug = $1 LIMIT 1',
       [slug]

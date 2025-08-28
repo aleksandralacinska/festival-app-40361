@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const compression = require('compression');
 const morgan = require('morgan');
+const cors = require('cors');
 
 const { applySecurity } = require('./middleware/security');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiters');
@@ -13,36 +14,53 @@ const eventsRoutes = require('./routes/events');
 const locationsRoutes = require('./routes/locations');
 const authRoutes = require('./routes/auth');
 
+const adminAuth = require('./routes/adminAuth');
+const teamsRoutes = require('./routes/teams');
+const pushRoutes = require('./routes/push');
+
 const app = express();
+
+// CORS (dev)
+const CLIENT = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+app.use(cors({
+  origin: [CLIENT, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+}));
 
 // Logi HTTP
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Security headers, CORS, HPP, body limit
+// Security headers, HPP, itp.
 applySecurity(app);
 
-// Kompresja odpowiedzi
+// Body parser + kompresja
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
 // LIMITERY
 app.use('/api', apiLimiter);
-// Bardziej surowy limiter tylko dla endpointów autoryzacji (bruteforce)
 app.use('/api/auth', authLimiter);
 
-// === MOUNT ROUTES ===
+// === MOUNT ROUTES (WSZYSTKIE) ===
 app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/locations', locationsRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminAuth);
+app.use('/api/teams', teamsRoutes);
+app.use('/api/team', teamsRoutes);
+app.use('/api/push', pushRoutes);
 
-// 404 fallback (API)
+// 404
 app.use((req, res) => {
   res.status(404).json({ error: 'not_found' });
 });
 
-// Globalny handler błędów (ostatni)
+// Globalny handler błędów
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;

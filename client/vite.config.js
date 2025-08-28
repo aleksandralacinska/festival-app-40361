@@ -6,9 +6,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      devOptions: { enabled: true },
+      // własny service worker (src/sw.js)
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+
+      // auto rejestracja i aktualizacja SW
       registerType: 'autoUpdate',
-      manifest: false,
+
+      // pliki statyczne do dołączenia
       includeAssets: [
         'favicon.svg',
         'icons/icon-192.png',
@@ -16,30 +22,25 @@ export default defineConfig({
         'icons/maskable-512.png'
       ],
 
-      workbox: {
-        cleanupOutdatedCaches: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        navigateFallback: '/index.html',
-        runtimeCaching: [
-          // API (events, locations) – NetworkFirst z krótkim timeoutem
-          {
-            urlPattern: /^https?:\/\/localhost:4000\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 5
-            }
-          },
-          // Google Maps API – online only
-          {
-            urlPattern: /^https:\/\/maps\.googleapis\.com\/.*/i,
-            handler: 'NetworkOnly'
-          },
-          {
-            urlPattern: /^https:\/\/maps\.gstatic\.com\/.*/i,
-            handler: 'NetworkOnly'
-          }
+      // manifest PWA
+      manifest: {
+        name: 'Festival PWA',
+        short_name: 'Festival',
+        description: 'PWA dla międzynarodowego festiwalu (harmonogram, mapa, powiadomienia).',
+        theme_color: '#fbb800',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/',
+        icons: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable any' }
         ]
+      },
+
+      // dev: pozwala testować SW/push lokalnie
+      devOptions: {
+        enabled: true
       }
     })
   ]

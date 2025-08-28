@@ -10,6 +10,12 @@ import MapPage from './pages/MapPage';
 import TeamPage from './pages/TeamPage';
 import SettingsPage from './pages/SettingsPage';
 
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminEvents from './pages/admin/AdminEvents';
+import AdminLocations from './pages/admin/AdminLocations';
+import AdminTeamsPin from './pages/admin/AdminTeamsPin';
+import AdminPush from './pages/admin/AdminPush';
+
 const Nav = () => (
   <nav className="bottom-nav" aria-label="Nawigacja dolna">
     <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : undefined)} aria-label="Start" title="Start">
@@ -89,6 +95,12 @@ export default function App() {
           <Route path="/map" element={<MapPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/admin" element={<AdminLogin />} />
+          
+          <Route path="/admin/events" element={<AdminEvents />} />
+          <Route path="/admin/locations" element={<AdminLocations />} />
+          <Route path="/admin/teams/pin" element={<AdminTeamsPin />} />
+          <Route path="/admin/push" element={<AdminPush />} />
         </Routes>
       </div>
       <Nav />

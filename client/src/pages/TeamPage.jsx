@@ -1,91 +1,127 @@
 import React, { useEffect, useState } from 'react';
-import { loginWithPin, getToken, logout } from '../services/auth';
+import { loginWithPin, getToken, logout, getTeamName } from '../services/auth';
 import { getMyTeam } from '../services/team';
-import { useTranslation } from 'react-i18next';
 
 export default function TeamPage() {
-  const { t, i18n } = useTranslation();
   const [teamData, setTeamData] = useState(null);
   const [form, setForm] = useState({ slug: '', pin: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const hasToken = !!getToken();
 
+  // jeśli jest token - próba pobrania /team/me — przy 401 czyszczenie tokenu i pokazanie formularza
   useEffect(() => {
-    if (hasToken) {
-      getMyTeam()
-        .then(setTeamData)
-        .catch(() => setError(t('team_fetch_error')));
-    }
-  }, [hasToken, t]);
+    let ignore = false;
+    if (!hasToken) return;
+
+    (async () => {
+      setError('');
+      setLoading(true);
+      try {
+        const data = await getMyTeam();
+        if (!ignore) setTeamData(data);
+      } catch (err) {
+        console.warn('getMyTeam error:', err);
+        if (!ignore) {
+          // jeśli nieautoryzowany — wyloguj i pokaż formularz
+          if (err?.code === 401 || err?.message === 'unauthorized') {
+            logout();
+            setTeamData(null);
+          }
+          setError('Błędny PIN lub wygasła sesja. Zaloguj ponownie.');
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+
+    return () => { ignore = true; };
+  }, [hasToken]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
-      await loginWithPin(form.slug, form.pin);
+      await loginWithPin(form.slug.trim(), form.pin.trim());
       const data = await getMyTeam();
       setTeamData(data);
+      setForm({ slug: '', pin: '' });
     } catch (err) {
       console.error('PIN login error:', err);
-      setError(t('bad_pin_or_slug'));
+      setError('Błędny PIN lub nazwa skrócona (slug).');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const locale = i18n.language === 'en' ? 'en-US' : 'pl-PL';
-  const fmtDate = (d) => new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(d));
-
+  // jeśli nie ma tokena lub nie mamy danych zespołu — formularz logowania
   if (!hasToken || !teamData) {
     return (
       <>
-        <h2>{t('team_access')}</h2>
+        <h2>Dostęp zespołu (PIN)</h2>
         <div className="card">
           <form onSubmit={onSubmit}>
             <label>
-              {t('slug_label')}<br/>
+              Nazwa skrócona (slug)<br/>
               <input
                 value={form.slug}
                 onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
                 required
+                autoComplete="username"
+                placeholder="np. elk, promni, pw, polka"
               />
-            </label><br/><br/>
+            </label>
+            <br/><br/>
             <label>
-              {t('pin_label')}<br/>
+              PIN<br/>
               <input
                 type="password"
                 value={form.pin}
                 onChange={e => setForm(f => ({ ...f, pin: e.target.value }))}
                 required
+                autoComplete="current-password"
+                placeholder="np. 1234"
               />
-            </label><br/><br/>
-            <button className="btn" type="submit">{t('login')}</button>
-            {error && <p style={{ color: 'crimson' }}>{error}</p>}
+            </label>
+            <br/><br/>
+            <button className="btn" type="submit" disabled={loading}>
+              {loading ? 'Logowanie…' : 'Zaloguj'}
+            </button>
+            {error && <p style={{ color: 'crimson', marginTop: 8 }}>{error}</p>}
           </form>
         </div>
       </>
     );
   }
 
+  // widok po zalogowaniu
   const { team, events, lodging } = teamData;
 
   return (
     <>
-      <h2>{team.name}</h2>
+      <h2>{team?.name || getTeamName()}</h2>
       {lodging && (
         <div className="card">
-          <b>{t('lodging')}:</b> {lodging.name}<br/>
+          <b>Nocleg:</b> {lodging.name}<br/>
           <small>{lodging.description}</small>
         </div>
       )}
-      <h3>{t('team_plan')}</h3>
+
+      <h3>Plan zespołu</h3>
       {(events && events.length ? events : []).map(ev => (
         <div className="card" key={ev.id}>
-          <strong>{fmtDate(ev.start_time)}</strong><br/>
-          {ev.name} — {ev.location_name || t('tba')}
+          <strong>{new Date(ev.start_time).toLocaleString()}</strong><br/>
+          {ev.name} — {ev.location_name || 'TBA'}
         </div>
       ))}
+
       <br/>
-      <button className="btn" onClick={() => { logout(); window.location.reload(); }}>
-        {t('logout')}
+      <button
+        className="btn"
+        onClick={() => { logout(); setTeamData(null); window.location.reload(); }}
+      >
+        Wyloguj
       </button>
     </>
   );
