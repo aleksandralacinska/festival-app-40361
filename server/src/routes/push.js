@@ -1,16 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const webpush = require('web-push');
-const { pool } = require('../config/db');
 const requireAdmin = require('../middleware/requireAdmin');
+const { sendToAll, sendToTeam } = require('../services/pushService');
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
-
-// POST /api/push/subscribe  { endpoint, keys:{p256dh,auth}, teamId? }
+// POST /api/push/subscribe { endpoint, keys:{p256dh,auth}, teamId? }
+const { pool } = require('../config/db');
 router.post('/subscribe', async (req, res, next) => {
   try {
     const { endpoint, keys, teamId } = req.body || {};
@@ -20,14 +14,15 @@ router.post('/subscribe', async (req, res, next) => {
     await pool.query(
       `INSERT INTO push_subscriptions (endpoint, p256dh, auth, team_id)
        VALUES ($1,$2,$3,$4)
-       ON CONFLICT (endpoint) DO UPDATE SET p256dh=EXCLUDED.p256dh, auth=EXCLUDED.auth, team_id=EXCLUDED.team_id`,
+       ON CONFLICT (endpoint) DO UPDATE
+         SET p256dh=EXCLUDED.p256dh, auth=EXCLUDED.auth, team_id=EXCLUDED.team_id`,
       [endpoint, keys.p256dh, keys.auth, teamId || null]
     );
     res.json({ ok: true });
   } catch (e) { next(e); }
 });
 
-// DELETE /api/push/unsubscribe  { endpoint }
+// DELETE /api/push/unsubscribe { endpoint }
 router.delete('/unsubscribe', async (req, res, next) => {
   try {
     const { endpoint } = req.body || {};
@@ -37,33 +32,14 @@ router.delete('/unsubscribe', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/push/broadcast  (admin) { title, body, url?, teamId? }
+// POST /api/push/broadcast (admin) { title, body, url?, teamId? }
 router.post('/broadcast', requireAdmin, async (req, res, next) => {
   try {
     const { title, body, url, teamId } = req.body || {};
     if (!title || !body) return res.status(400).json({ error: 'title_body_required' });
-
-    const args = [];
-    let q = 'SELECT id, endpoint, p256dh, auth FROM push_subscriptions';
-    if (teamId) { q += ' WHERE team_id=$1'; args.push(teamId); }
-
-    const { rows } = await pool.query(q, args);
-    let sent = 0, failed = 0;
-
-    await Promise.all(rows.map(async (s) => {
-      const sub = {
-        endpoint: s.endpoint,
-        keys: { p256dh: s.p256dh, auth: s.auth }
-      };
-      try {
-        await webpush.sendNotification(sub, JSON.stringify({ title, body, url }));
-        sent++;
-      } catch {
-        failed++;
-      }
-    }));
-
-    res.json({ ok: true, sent, failed });
+    const payload = { title, body, url: url || '/' };
+    const result = teamId ? await sendToTeam(Number(teamId), payload) : await sendToAll(payload);
+    res.json({ ok: true, ...result });
   } catch (e) { next(e); }
 });
 

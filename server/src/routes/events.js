@@ -4,6 +4,7 @@ const { pool } = require('../config/db');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/validators');
 const requireAdmin = require('../middleware/requireAdmin');
+const { sendToAll, sendToTeam } = require('../services/pushService');
 
 // GET /api/events – lista publiczna
 router.get('/', async (_req, res, next) => {
@@ -48,7 +49,7 @@ router.post('/',
   }
 );
 
-// PUT /api/events/:id – update (admin)
+// PUT /api/events/:id – update (admin) + PUSH przy zmianach
 router.put('/:id',
   requireAdmin,
   [
@@ -63,9 +64,16 @@ router.put('/:id',
   ],
   async (req, res, next) => {
     try {
-      const id = req.params.id;
+      const id = Number(req.params.id);
+
+      // 1) pobierz stan poprzedni
+      const prevQ = await pool.query(`SELECT * FROM events WHERE id=$1`, [id]);
+      const prev = prevQ.rows[0];
+      if (!prev) return res.status(404).json({ error: 'not_found' });
+
+      // 2) zaktualizuj
       const { name, description, start_time, end_time, category, location_id, team_id, is_public } = req.body;
-      const { rows } = await pool.query(
+      const updQ = await pool.query(
         `UPDATE events SET
            name = COALESCE($2, name),
            description = COALESCE($3, description),
@@ -80,8 +88,39 @@ router.put('/:id',
         [id, name || null, description || null, start_time || null, end_time || null,
          category || null, location_id || null, team_id || null, (typeof is_public === 'boolean' ? is_public : null)]
       );
-      if (!rows[0]) return res.status(404).json({ error: 'not_found' });
-      res.json(rows[0]);
+      const curr = updQ.rows[0];
+      res.json(curr);
+
+      // 3) wykryj istotne zmiany
+      const changed = [];
+      const fields = ['name','start_time','end_time','category','location_id','team_id','is_public','description'];
+      for (const f of fields) {
+        const a = prev[f]; const b = curr[f];
+        const same = (a instanceof Date && b instanceof Date) ? (a.getTime() === b.getTime()) : (String(a) === String(b));
+        if (!same) changed.push(f);
+      }
+      if (changed.length === 0) return;
+
+      // 4) przygotuj payload
+      const dateFmt = (d) => new Intl.DateTimeFormat('pl-PL', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }).format(new Date(d));
+      const title = 'Zmiana w programie';
+      let bodyMsg = `Zaktualizowano: ${curr.name}`;
+      if (changed.includes('start_time') || changed.includes('end_time')) {
+        bodyMsg += ` – nowy czas: ${dateFmt(curr.start_time)}${curr.end_time ? '–' + dateFmt(curr.end_time) : ''}`;
+      }
+      const url = `/event/${curr.id}`;
+
+      // 5) wysyłka do zespołu lub globalnie
+      try {
+        if (curr.team_id) {
+          await sendToTeam(curr.team_id, { title, body: bodyMsg, url });
+        } else if (curr.is_public !== false) {
+          await sendToAll({ title, body: bodyMsg, url });
+        }
+      } catch (e) {
+        // brak przerwania odpowiedzi – tylko log
+        console.warn('[push change] send failed:', e?.message);
+      }
     } catch (e) { next(e); }
   }
 );
