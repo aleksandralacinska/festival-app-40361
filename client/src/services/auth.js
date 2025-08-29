@@ -1,8 +1,8 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+import { API_URL } from './api';
 
 export async function loginWithPin(slug, pin) {
   const body = new URLSearchParams({ slug, pin });
-  const r = await fetch(`${API_URL}/api/auth/pin`, {
+  const r = await fetch(`${API_URL}/auth/pin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body
@@ -15,20 +15,11 @@ export async function loginWithPin(slug, pin) {
   return data;
 }
 
-export function getToken() {
-  return localStorage.getItem('auth_token');
-}
-
+export function getToken() { return localStorage.getItem('auth_token'); }
 export function logout() {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('team_name');
   localStorage.removeItem('team_slug');
 }
-
-// do UI
-export function getTeamName() {
-  return localStorage.getItem('team_name') || '';
-}
-export function getTeamSlug() {
-  return localStorage.getItem('team_slug') || '';
-}
+export function getTeamName() { return localStorage.getItem('team_name') || ''; }
+export function getTeamSlug() { return localStorage.getItem('team_slug') || ''; }

@@ -27,15 +27,17 @@ registerRoute(navigationRoute);
 // ====== 2) Runtime caching ======
 
 // 2.1 API – NetworkFirst z timeoutem
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-const API = new URL(API_URL);
-const API_ORIGIN = API.origin;
-const API_PATH = API.pathname || '/';
+const RAW = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = new URL(RAW, self.location.origin);
+const API_ORIGIN = API_BASE.origin;
+const API_PATH = API_BASE.pathname.includes('/api')
+  ? API_BASE.pathname.replace(/\/+$/, '')
+  : `${API_BASE.pathname.replace(/\/+$/, '')}/api`;
 
 registerRoute(
   ({ url }) =>
     (url.origin === API_ORIGIN && url.pathname.startsWith(API_PATH)) ||
-    (url.origin === self.location.origin && url.pathname.startsWith('/api/')),
+    (url.origin === self.location.origin && url.pathname.startsWith('/api')),
   new NetworkFirst({
     networkTimeoutSeconds: 5,
     cacheName: 'api-cache',
