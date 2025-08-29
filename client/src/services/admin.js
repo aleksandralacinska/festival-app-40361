@@ -68,3 +68,13 @@ export async function adminPushBroadcast({ title, body, url, teamId }){
   if (!r.ok) throw new Error('push_failed');
   return r.json();
 }
+
+export async function adminCreateTeam(data){
+  const r = await fetch(`${API_URL}/teams`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', Authorization: `Bearer ${getAdminToken()}`},
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error('create_team_failed');
+  return r.json();
+}

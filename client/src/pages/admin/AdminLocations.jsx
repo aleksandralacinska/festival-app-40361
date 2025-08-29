@@ -21,7 +21,7 @@ export default function AdminLocations(){
   return (
     <>
       <h2>Lokalizacje (admin)</h2>
-      <div className="card">
+      <div className="card" style={{maxWidth:860, marginInline:'auto', textAlign:'left'}}>
         <form onSubmit={create}>
           <label>Nazwa<br/><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required/></label><br/><br/>
           <label>Typ<br/>
@@ -32,7 +32,7 @@ export default function AdminLocations(){
           </label><br/><br/>
           <label>Lat<br/><input value={form.lat} onChange={e=>setForm(f=>({...f,lat:e.target.value}))} required/></label><br/><br/>
           <label>Lng<br/><input value={form.lng} onChange={e=>setForm(f=>({...f,lng:e.target.value}))} required/></label><br/><br/>
-          <label>Opis<br/><textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}/></label><br/><br/>
+          <label>Opis (opcjonalnie)<br/><textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}/></label><br/><br/>
           <button className="btn">Dodaj</button>
           {err && <p style={{color:'crimson'}}>{err}</p>}
         </form>
@@ -40,7 +40,7 @@ export default function AdminLocations(){
 
       <div style={{marginTop:16}}>
         {list.map(l=>(
-          <div className="card" key={l.id}>
+          <div className="card" key={l.id} style={{textAlign:'left'}}>
             <b>{l.name}</b> <small>({l.type})</small><br/>
             <small>{l.lat}, {l.lng}</small>
           </div>
