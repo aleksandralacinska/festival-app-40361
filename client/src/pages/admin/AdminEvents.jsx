@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchPublicEvents } from '../../services/events';
-import { adminCreateEvent, adminUpdateEvent, adminGetTeams } from '../../services/admin';
+import { adminCreateEvent, adminUpdateEvent, adminFetchEventsAll, adminDeleteEvent, adminGetTeams } from '../../services/admin';
 import { fetchLocations } from '../../services/locations';
 
 const PUBLIC_CATEGORIES = [
@@ -9,7 +8,6 @@ const PUBLIC_CATEGORIES = [
   { value:'ceremony', label:'Ceremonia' },
   { value:'special', label:'Specjalne' },
 ];
-
 const TEAM_CATEGORIES = [
   { value:'concert', label:'Koncert' },
   { value:'special', label:'Specjalne' },
@@ -19,32 +17,39 @@ const TEAM_CATEGORIES = [
   { value:'other', label:'Inne' },
 ];
 
+function toInputDT(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = (n)=> String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function AdminEvents(){
   const [events, setEvents] = useState([]);
   const [teams, setTeams] = useState([]);
   const [locations, setLocations] = useState([]);
 
-  const [mode, setMode] = useState('public'); // 'public' | 'team'
+  const [mode, setMode] = useState('public'); // 'public'|'team'
   const [form, setForm] = useState({
     name:'', start_time:'', end_time:'', description:'',
     category:'concert', is_public:true, team_id:'', location_id:''
   });
 
+  const [editId, setEditId] = useState(null);
+  const [edit, setEdit] = useState({});
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
 
   useEffect(()=>{
-    fetchPublicEvents().then(setEvents).catch(()=>setErr('Błąd listy'));
+    adminFetchEventsAll().then(setEvents).catch(()=>setErr('Błąd listy'));
     adminGetTeams().then(setTeams).catch(()=>{});
     fetchLocations().then(setLocations).catch(()=>{});
   }, []);
 
   useEffect(()=>{
-    // jeśli tryb publiczny -> nie pozwalaj wybrać team_id, is_public = true
     if (mode === 'public') {
       setForm(f => ({ ...f, team_id:'', is_public:true, category: 'concert' }));
     } else {
-      // tryb team -> domyślnie kategoria 'party', is_public=false
       setForm(f => ({ ...f, is_public:false, category: 'party' }));
     }
   }, [mode]);
@@ -52,9 +57,7 @@ export default function AdminEvents(){
   const cats = mode === 'public' ? PUBLIC_CATEGORIES : TEAM_CATEGORIES;
 
   const create = async (e)=>{
-    e.preventDefault();
-    setErr(''); setOk('');
-
+    e.preventDefault(); setErr(''); setOk('');
     try{
       const payload = {
         name: form.name.trim(),
@@ -62,46 +65,73 @@ export default function AdminEvents(){
         start_time: form.start_time ? new Date(form.start_time).toISOString() : null,
         end_time: form.end_time ? new Date(form.end_time).toISOString() : null,
         category: form.category,
-        is_public: mode === 'public' ? true : false,
+        is_public: mode === 'public',
         team_id: mode === 'team' && form.team_id ? Number(form.team_id) : null,
         location_id: form.location_id ? Number(form.location_id) : null,
       };
-
       const created = await adminCreateEvent(payload);
-      // odśwież tylko przy publicznych (ten widok listuje publiczne)
-      if (payload.is_public) setEvents(v=>[...v, created]);
-      setForm({
-        name:'', start_time:'', end_time:'', description:'',
-        category: mode === 'public' ? 'concert' : 'party',
-        is_public: mode === 'public',
-        team_id:'', location_id:''
-      });
+      setEvents(v=>[...v, created].sort((a,b)=>new Date(a.start_time)-new Date(b.start_time)));
+      setForm({ name:'', start_time:'', end_time:'', description:'', category: mode==='public'?'concert':'party', is_public: mode==='public', team_id:'', location_id:'' });
       setOk('Dodano wydarzenie ✅');
-      setTimeout(()=>setOk(''), 2000);
+      setTimeout(()=>setOk(''), 1500);
     }catch(e){
-      console.error('create event error:', e);
-      setErr('Błąd tworzenia (sprawdź kategorię / daty / lokalizację)');
+      console.error(e);
+      setErr('Błąd tworzenia');
     }
   };
 
-  const quickPublish = async (ev)=>{
+  const startEdit = (ev)=>{
+    setEditId(ev.id);
+    setEdit({
+      name: ev.name,
+      category: ev.category,
+      start_time: toInputDT(ev.start_time),
+      end_time: toInputDT(ev.end_time),
+      description: ev.description || '',
+      location_id: ev.location_id || '',
+      team_id: ev.team_id || ''
+    });
+  };
+
+  const saveEdit = async (id)=>{
     setErr(''); setOk('');
     try{
-      const updated = await adminUpdateEvent(ev.id, { is_public: true });
-      setEvents(v => v.map(x => x.id===ev.id ? updated : x));
-      setOk('Opublikowano ✅');
-      setTimeout(()=>setOk(''), 2000);
+      const payload = {
+        name: edit.name,
+        category: edit.category,
+        start_time: edit.start_time ? new Date(edit.start_time).toISOString() : null,
+        end_time: edit.end_time ? new Date(edit.end_time).toISOString() : null,
+        description: edit.description,
+        location_id: edit.location_id ? Number(edit.location_id) : null,
+        team_id: edit.team_id ? Number(edit.team_id) : null
+      };
+      const upd = await adminUpdateEvent(id, payload);
+      setEvents(v=>v.map(x=>x.id===id? upd : x));
+      setEditId(null);
+      setOk('Zapisano ✅');
+      setTimeout(()=>setOk(''), 1200);
     }catch(e){
-      console.error('quickPublish error:', e);
-      setErr('Błąd publikacji');
+      console.error(e);
+      setErr('Błąd zapisu (sprawdź kategorie vs tryb)');
     }
+  };
+
+  const remove = async (id)=>{
+    if (!confirm('Usunąć to wydarzenie?')) return;
+    setErr(''); setOk('');
+    try{
+      await adminDeleteEvent(id);
+      setEvents(v=>v.filter(x=>x.id!==id));
+      setOk('Usunięto ✅');
+      setTimeout(()=>setOk(''), 1200);
+    }catch{ setErr('Błąd usuwania'); }
   };
 
   return (
     <>
       <h2>Wydarzenia (admin)</h2>
 
-      <div className="card" style={{maxWidth:860, marginInline:'auto', textAlign:'left'}}>
+      <div className="card" style={{maxWidth:920, marginInline:'auto', textAlign:'left'}}>
         <form onSubmit={create}>
           <div style={{display:'flex', gap:12, flexWrap:'wrap', alignItems:'center'}}>
             <label style={{display:'inline-flex',alignItems:'center',gap:6}}>
@@ -112,17 +142,12 @@ export default function AdminEvents(){
               <input type="radio" name="mode" checked={mode==='team'} onChange={()=>setMode('team')} />
               Harmonogram zespołu
             </label>
-          </div>
-          <br/>
+          </div><br/>
 
           {mode==='team' && (
             <>
               <label>Zespół<br/>
-                <select
-                  value={form.team_id}
-                  onChange={e=>setForm(f=>({...f,team_id:e.target.value}))}
-                  required
-                >
+                <select value={form.team_id} onChange={e=>setForm(f=>({...f,team_id:e.target.value}))} required>
                   <option value="">— wybierz —</option>
                   {teams.map(t=> <option key={t.id} value={t.id}>{t.name} ({t.slug})</option>)}
                 </select>
@@ -149,16 +174,13 @@ export default function AdminEvents(){
           </label><br/><br/>
 
           <label>Lokalizacja (opcjonalnie)<br/>
-            <select
-              value={form.location_id}
-              onChange={e=>setForm(f=>({...f,location_id:e.target.value}))}
-            >
+            <select value={form.location_id} onChange={e=>setForm(f=>({...f,location_id:e.target.value}))}>
               <option value="">— brak —</option>
               {locations.map(l=> <option key={l.id} value={l.id}>{l.name} ({l.type})</option>)}
             </select>
           </label><br/><br/>
 
-          <label>Opis (krótki, opcjonalnie)<br/>
+          <label>Opis (opcjonalnie)<br/>
             <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}/>
           </label><br/><br/>
 
@@ -169,17 +191,53 @@ export default function AdminEvents(){
       </div>
 
       <div style={{marginTop:16}}>
-        <h3>Wydarzenia publiczne (lista)</h3>
         {events.map(ev=>(
-          <div className="card" key={ev.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div style={{textAlign:'left'}}>
-              <b>{ev.name}</b><br/>
-              <small>{new Date(ev.start_time).toLocaleString()}</small><br/>
-              <small>{ev.location_name || '—'}</small>
-            </div>
-            <div>
-              {!ev.is_public && <button className="btn" onClick={()=>quickPublish(ev)}>Publikuj</button>}
-            </div>
+          <div className="card" key={ev.id} style={{textAlign:'left'}}>
+            {editId===ev.id ? (
+              <>
+                <b>Edytuj: #{ev.id}</b><br/><br/>
+                <label>Nazwa<br/>
+                  <input value={edit.name} onChange={e=>setEdit(f=>({...f,name:e.target.value}))}/>
+                </label><br/><br/>
+                <label>Kategoria<br/>
+                  <select value={edit.category} onChange={e=>setEdit(f=>({...f,category:e.target.value}))}>
+                    {(ev.team_id?TEAM_CATEGORIES:PUBLIC_CATEGORIES).map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </label><br/><br/>
+                <label>Start<br/>
+                  <input type="datetime-local" value={edit.start_time} onChange={e=>setEdit(f=>({...f,start_time:e.target.value}))}/>
+                </label><br/><br/>
+                <label>Koniec<br/>
+                  <input type="datetime-local" value={edit.end_time} onChange={e=>setEdit(f=>({...f,end_time:e.target.value}))}/>
+                </label><br/><br/>
+                <label>Lokalizacja<br/>
+                  <select value={edit.location_id} onChange={e=>setEdit(f=>({...f,location_id:e.target.value}))}>
+                    <option value="">— brak —</option>
+                    {locations.map(l=> <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </label><br/><br/>
+                <label>Opis<br/>
+                  <textarea value={edit.description} onChange={e=>setEdit(f=>({...f,description:e.target.value}))}/>
+                </label><br/><br/>
+
+                <div style={{display:'flex', gap:8}}>
+                  <button type="button" className="btn" onClick={()=>saveEdit(ev.id)}>Zapisz</button>
+                  <button type="button" className="btn" onClick={()=>setEditId(null)}>Anuluj</button>
+                </div>
+              </>
+            ) : (
+              <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'center'}}>
+                <div>
+                  <b>{ev.name}</b> {ev.team_name ? <small>• {ev.team_name}</small> : <small>• PUBLIC</small>}<br/>
+                  <small>{new Date(ev.start_time).toLocaleString()} {ev.end_time ? `– ${new Date(ev.end_time).toLocaleString()}`:''}</small><br/>
+                  <small>kategoria: {ev.category} • lokacja: {ev.location_name || '—'}</small>
+                </div>
+                <div style={{display:'flex', gap:8}}>
+                  <button className="btn" onClick={()=>startEdit(ev)}>Edytuj</button>
+                  <button className="btn" onClick={()=>remove(ev.id)}>Usuń</button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

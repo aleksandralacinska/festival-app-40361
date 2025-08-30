@@ -9,7 +9,7 @@ const requireAdmin = require('../middleware/requireAdmin');
 const PUBLIC_CATS = ['concert', 'parade', 'ceremony', 'special'];
 const TEAM_CATS = ['concert', 'special', 'party', 'meal', 'rehearsal', 'other'];
 
-// GET /api/events – lista publiczna
+// GET /api/events – lista publiczna (PWA)
 router.get('/', async (_req, res, next) => {
   try {
     const { rows } = await pool.query(`
@@ -24,7 +24,23 @@ router.get('/', async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/events – create (admin)
+// GET /api/events/all – lista pełna (ADMIN)
+router.get('/all', requireAdmin, async (_req, res, next) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT e.*,
+             l.name AS location_name,
+             t.name AS team_name
+      FROM events e
+      LEFT JOIN locations l ON l.id = e.location_id
+      LEFT JOIN teams t ON t.id = e.team_id
+      ORDER BY e.start_time ASC NULLS LAST, e.id ASC
+    `);
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+// POST /api/events – create (ADMIN)
 router.post('/',
   requireAdmin,
   [
@@ -41,21 +57,19 @@ router.post('/',
     try {
       let { name, description, start_time, end_time, category, location_id, team_id, is_public } = req.body;
 
-      // Normalizacja
       category = String(category);
       const isTeam = !!team_id;
 
-      // Walidacja kategorii względem trybu
       if (isTeam) {
         if (!TEAM_CATS.includes(category)) {
           return res.status(400).json({ error: 'invalid_category_for_team' });
         }
-        is_public = false; // wydarzenia zespołu nie są publiczne
+        is_public = false;
       } else {
         if (!PUBLIC_CATS.includes(category)) {
           return res.status(400).json({ error: 'invalid_category_for_public' });
         }
-        is_public = true; // ogólny harmonogram jest publiczny
+        is_public = true;
       }
 
       const { rows } = await pool.query(
@@ -70,7 +84,7 @@ router.post('/',
   }
 );
 
-// PUT /api/events/:id – update (admin)
+// PUT /api/events/:id – update (ADMIN)
 router.put('/:id',
   requireAdmin,
   [
@@ -90,9 +104,7 @@ router.put('/:id',
       const ev = existing.rows[0];
       if (!ev) return res.status(404).json({ error: 'not_found' });
 
-      // Jeśli zmieniamy kategorię albo widoczność, sprawdź zasady
       let { name, description, start_time, end_time, category, location_id, team_id, is_public } = req.body;
-
       const newTeamId = (team_id !== undefined ? team_id : ev.team_id);
       const newCategory = (category !== undefined ? category : ev.category);
 
@@ -100,16 +112,12 @@ router.put('/:id',
         if (newCategory && !TEAM_CATS.includes(newCategory)) {
           return res.status(400).json({ error: 'invalid_category_for_team' });
         }
-        if (is_public === true) {
-          return res.status(400).json({ error: 'team_events_cannot_be_public' });
-        }
+        if (is_public === true) return res.status(400).json({ error: 'team_events_cannot_be_public' });
       } else {
         if (newCategory && !PUBLIC_CATS.includes(newCategory)) {
           return res.status(400).json({ error: 'invalid_category_for_public' });
         }
-        if (is_public === false) {
-          return res.status(400).json({ error: 'public_events_must_be_public' });
-        }
+        if (is_public === false) return res.status(400).json({ error: 'public_events_must_be_public' });
       }
 
       const { rows } = await pool.query(
@@ -127,10 +135,19 @@ router.put('/:id',
         [id, name || null, description || null, start_time || null, end_time || null,
          category || null, location_id || null, team_id || null, (is_public !== undefined ? is_public : null)]
       );
-      if (!rows[0]) return res.status(404).json({ error: 'not_found' });
       res.json(rows[0]);
     } catch (e) { next(e); }
   }
 );
+
+// DELETE /api/events/:id – delete (ADMIN)
+router.delete('/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const r = await pool.query('DELETE FROM events WHERE id=$1', [id]);
+    if (!r.rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
 
 module.exports = router;
