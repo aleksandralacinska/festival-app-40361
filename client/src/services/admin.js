@@ -132,3 +132,12 @@ export async function adminDeleteTeam(id){
   if (!r.ok) throw new Error('delete_team_failed');
   return r.json();
 }
+
+export async function adminRunReminders(){
+  const r = await fetch(`${API_URL}/push/run-reminders`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getAdminToken()}` }
+  });
+  if (!r.ok) throw new Error('run_reminders_failed');
+  return r.json();
+}

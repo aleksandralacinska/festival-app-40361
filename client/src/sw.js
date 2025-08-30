@@ -5,7 +5,7 @@
  * - precache build assets
  * - runtime caching (API)
  * - Google Maps -> NetworkOnly
- * - push notifications + deep link
+ * - push notification
  */
 
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
@@ -14,19 +14,15 @@ import { NetworkFirst, NetworkOnly, StaleWhileRevalidate } from 'workbox-strateg
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
-// ====== 1) Precache bundlowanych plików (wstrzykuje VitePWA) ======
 precacheAndRoute(self.__WB_MANIFEST || []);
 
-// SPA fallback (działa offline nawigacja do /route)
 const handler = createHandlerBoundToURL('/index.html');
 const navigationRoute = new NavigationRoute(handler, {
   denylist: [/^\/api\//, /^\/assets\//],
 });
 registerRoute(navigationRoute);
 
-// ====== 2) Runtime caching ======
-
-// 2.1 API – NetworkFirst z timeoutem
+// API cache
 const RAW = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const API_BASE = new URL(RAW, self.location.origin);
 const API_ORIGIN = API_BASE.origin;
@@ -49,38 +45,34 @@ registerRoute(
   'GET'
 );
 
-// 2.2 Google Maps – NetworkOnly
+// Google Maps online
 registerRoute(
   ({ url }) => url.origin === 'https://maps.googleapis.com' || url.origin === 'https://maps.gstatic.com',
   new NetworkOnly()
 );
 
-// statyczne zasoby – SWR
+// static SWR
 registerRoute(
   ({ request, url }) =>
     url.origin === self.location.origin && ['image', 'style', 'script'].includes(request.destination),
   new StaleWhileRevalidate({ cacheName: 'static-swr' })
 );
 
-// ====== 3) Web Push ======
+// Push
 self.addEventListener('push', (event) => {
-    let data = {};
-    try {
-      data = event.data?.json() || {};
-    } catch {
-      // fallback gdy payload nie jest JSON-em
-      data = {};
-    }
-    const title = data.title || 'Festival';
-    const options = {
-      body: data.body || '',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      data: { url: data.url || '/' }
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
-  });
-  
+  let data = {};
+  try { data = event.data?.json() || {}; } catch { data = {}; }
+  const title = data.title || 'Festival';
+  const options = {
+    body: data.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: data.url || '/' },
+    tag: data.tag || undefined,
+    renotify: data.renotify === true
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

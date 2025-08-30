@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getToken } from '../services/auth';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
@@ -46,6 +47,19 @@ export default function SettingsPage() {
     })();
   }, []);
 
+  async function fetchMyTeamId() {
+    const token = getToken?.();
+    if (!token) return null;
+    try {
+      const r = await fetch(`${API}/team/me`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return null;
+      const data = await r.json();
+      return data?.team?.id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async function subscribePush() {
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
@@ -58,7 +72,8 @@ export default function SettingsPage() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY.trim()),
       });
     }
-    const payload = { endpoint: sub.endpoint, keys: sub.toJSON().keys, teamId: null };
+    const teamId = await fetchMyTeamId();
+    const payload = { endpoint: sub.endpoint, keys: sub.toJSON().keys, teamId: teamId || null };
     const r = await fetch(`${API}/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -116,7 +131,6 @@ export default function SettingsPage() {
 
       <div style={{ display: 'grid', placeItems: 'center', minHeight: '50vh' }}>
         <div style={{ width: '100%', maxWidth: 420, display: 'grid', gap: 16 }}>
-          {/* Język interfejsu */}
           <div className="card" style={{ display: 'grid', gap: 8 }}>
             <label htmlFor="lang-select" style={{ fontWeight: 700, marginBottom: 6 }}>
               {t('language')}
@@ -132,7 +146,6 @@ export default function SettingsPage() {
             </select>
           </div>
 
-          {/* Powiadomienia */}
           <div className="card" style={{ display: 'grid', gap: 12 }}>
             <div style={{ fontWeight: 700 }}>{t('notifications_title')}</div>
             <div style={{ color: 'var(--gray-700)' }}>{statusText}</div>

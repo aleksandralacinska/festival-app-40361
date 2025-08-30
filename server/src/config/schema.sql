@@ -49,3 +49,15 @@ ALTER TABLE events
 
 CREATE INDEX IF NOT EXISTS idx_events_is_public ON events(is_public);
 CREATE INDEX IF NOT EXISTS idx_events_category  ON events(category);
+
+
+-- log wysłanych przypomnień (unikalność: (event_id, at_minutes))
+CREATE TABLE IF NOT EXISTS event_reminder_log (
+  event_id INT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  at_minutes INT NOT NULL,
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (event_id, at_minutes)
+);
+
+-- pomocniczy indeks pod subskrypcje per team
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_team_id ON push_subscriptions(team_id);

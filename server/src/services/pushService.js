@@ -11,6 +11,7 @@ if (!PUB || !PRIV) {
 }
 webpush.setVapidDetails(SUBJECT, PUB, PRIV);
 
+// === bazowe wysyłki ===
 async function getSubscriptions(teamId = null) {
   const args = [];
   let q = `SELECT id, endpoint, p256dh, auth FROM push_subscriptions`;
@@ -45,7 +46,71 @@ async function sendToTeam(teamId, payload) {
   return sendToSubs(payload, subs);
 }
 
+// === helpery eventów ===
+function audienceForEvent(ev) {
+  // publiczny -> wszyscy; teamowy -> konkretny team
+  if (ev && ev.team_id) return { scope: 'team', teamId: Number(ev.team_id) };
+  return { scope: 'all', teamId: null };
+}
+function buildEventUrl(id) {
+  return `/event/${id}`;
+}
+function changedMeaningfully(before, after) {
+  if (!before || !after) return true;
+  const keys = ['name','start_time','end_time','location_id','category','team_id','is_public'];
+  return keys.some(k => String(before[k] ?? '') !== String(after[k] ?? ''));
+}
+
+// powiadomienie po utworzeniu
+async function notifyEventCreate(ev) {
+  const aud = audienceForEvent(ev);
+  const payload = {
+    title: 'Aktualizacja programu',
+    body: `Dodano: ${ev.name}`,
+    url: buildEventUrl(ev.id),
+    tag: `event-create-${ev.id}`,
+    renotify: true
+  };
+  return aud.scope === 'team'
+    ? sendToTeam(aud.teamId, payload)
+    : sendToAll(payload);
+}
+
+// powiadomienie po zmianie (PUT)
+async function notifyEventUpdate(before, after) {
+  if (!changedMeaningfully(before, after)) return { sent: 0, failed: 0 };
+  const aud = audienceForEvent(after);
+  const payload = {
+    title: 'Zmiana w programie',
+    body: `${after.name}`,
+    url: buildEventUrl(after.id),
+    tag: `event-update-${after.id}`,
+    renotify: true
+  };
+  return aud.scope === 'team'
+    ? sendToTeam(aud.teamId, payload)
+    : sendToAll(payload);
+}
+
+// przypomnienie 30/15 min
+async function sendReminder(event, minutes) {
+  const aud = audienceForEvent(event);
+  const payload = {
+    title: `Przypomnienie (${minutes} min)`,
+    body: `${event.name}`,
+    url: buildEventUrl(event.id),
+    tag: `event-reminder-${event.id}-${minutes}`,
+    renotify: true
+  };
+  return aud.scope === 'team'
+    ? sendToTeam(aud.teamId, payload)
+    : sendToAll(payload);
+}
+
 module.exports = {
   sendToAll,
   sendToTeam,
+  notifyEventCreate,
+  notifyEventUpdate,
+  sendReminder,
 };

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const requireAdmin = require('../middleware/requireAdmin');
-const { sendToAll, sendToTeam } = require('../services/pushService');
+const { sendToAll, sendToTeam, sendReminder } = require('../services/pushService');
 
 // POST /api/push/subscribe { endpoint, keys:{p256dh,auth}, teamId? }
 const { pool } = require('../config/db');
@@ -40,6 +40,52 @@ router.post('/broadcast', requireAdmin, async (req, res, next) => {
     const payload = { title, body, url: url || '/' };
     const result = teamId ? await sendToTeam(Number(teamId), payload) : await sendToAll(payload);
     res.json({ ok: true, ...result });
+  } catch (e) { next(e); }
+});
+
+// POST /api/push/run-reminders (admin)
+// uruchamiaj cyklicznie (cron) co 1 min lub ręcznie: sprawdza okna T-30 i T-15 (z buforem 1 min)
+router.post('/run-reminders', requireAdmin, async (_req, res, next) => {
+  try {
+    const minutesSet = [30, 15];
+    let total = { '30': { sent: 0, failed: 0 }, '15': { sent: 0, failed: 0 } };
+
+    for (const min of minutesSet) {
+      const { rows: events } = await pool.query(
+        `
+        WITH due AS (
+          SELECT e.*
+          FROM events e
+          WHERE e.start_time BETWEEN (NOW() + ($1 || ' minutes')::interval)
+                                AND (NOW() + ($1 || ' minutes')::interval + INTERVAL '1 minute')
+        )
+        SELECT d.*
+        FROM due d
+        LEFT JOIN event_reminder_log l
+          ON l.event_id = d.id AND l.at_minutes = $1::int
+        WHERE l.event_id IS NULL
+        ORDER BY d.start_time ASC
+        `,
+        [min]
+      );
+
+      for (const ev of events) {
+        try {
+          const r = await sendReminder(ev, min);
+          total[String(min)].sent += r.sent;
+          total[String(min)].failed += r.failed;
+          await pool.query(
+            `INSERT INTO event_reminder_log (event_id, at_minutes, sent_at)
+             VALUES ($1,$2,NOW())
+             ON CONFLICT (event_id, at_minutes) DO NOTHING`,
+            [ev.id, min]
+          );
+        } catch {
+          // log błąd wysyłki, ale nie przerywaj
+        }
+      }
+    }
+    res.json({ ok: true, total });
   } catch (e) { next(e); }
 });
 

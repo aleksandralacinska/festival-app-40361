@@ -4,6 +4,7 @@ const { pool } = require('../config/db');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/validators');
 const requireAdmin = require('../middleware/requireAdmin');
+const { notifyEventCreate, notifyEventUpdate } = require('../services/pushService');
 
 // Dozwolone kategorie
 const PUBLIC_CATS = ['concert', 'parade', 'ceremony', 'special'];
@@ -79,7 +80,12 @@ router.post('/',
         [name, description || null, start_time, end_time || null, category,
          location_id || null, team_id || null, is_public]
       );
-      res.status(201).json(rows[0]);
+
+      const created = rows[0];
+      // powiadom: nowe wydarzenie
+      try { await notifyEventCreate(created); } catch {}
+
+      res.status(201).json(created);
     } catch (e) { next(e); }
   }
 );
@@ -100,13 +106,15 @@ router.put('/:id',
   async (req, res, next) => {
     try {
       const id = req.params.id;
-      const existing = await pool.query('SELECT id, team_id, category FROM events WHERE id=$1', [id]);
-      const ev = existing.rows[0];
-      if (!ev) return res.status(404).json({ error: 'not_found' });
+      const { rows: beforeRows } = await pool.query(
+        'SELECT * FROM events WHERE id=$1 LIMIT 1', [id]
+      );
+      const before = beforeRows[0];
+      if (!before) return res.status(404).json({ error: 'not_found' });
 
       let { name, description, start_time, end_time, category, location_id, team_id, is_public } = req.body;
-      const newTeamId = (team_id !== undefined ? team_id : ev.team_id);
-      const newCategory = (category !== undefined ? category : ev.category);
+      const newTeamId = (team_id !== undefined ? team_id : before.team_id);
+      const newCategory = (category !== undefined ? category : before.category);
 
       if (newTeamId) {
         if (newCategory && !TEAM_CATS.includes(newCategory)) {
@@ -135,7 +143,12 @@ router.put('/:id',
         [id, name || null, description || null, start_time || null, end_time || null,
          category || null, location_id || null, team_id || null, (is_public !== undefined ? is_public : null)]
       );
-      res.json(rows[0]);
+      const after = rows[0];
+
+      // powiadom: zmiana wydarzenia
+      try { await notifyEventUpdate(before, after); } catch {}
+
+      res.json(after);
     } catch (e) { next(e); }
   }
 );
