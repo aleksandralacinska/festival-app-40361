@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { adminCreateEvent, adminUpdateEvent, adminFetchEventsAll, adminDeleteEvent, adminGetTeams } from '../../services/admin';
+import {
+  adminCreateEvent,
+  adminUpdateEvent,
+  adminFetchEventsAll,
+  adminDeleteEvent,
+  adminGetTeams
+} from '../../services/admin';
 import { fetchLocations } from '../../services/locations';
 
 const PUBLIC_CATEGORIES = [
@@ -8,6 +14,7 @@ const PUBLIC_CATEGORIES = [
   { value:'ceremony', label:'Ceremonia' },
   { value:'special', label:'Specjalne' },
 ];
+
 const TEAM_CATEGORIES = [
   { value:'concert', label:'Koncert' },
   { value:'special', label:'Specjalne' },
@@ -31,8 +38,13 @@ export default function AdminEvents(){
 
   const [mode, setMode] = useState('public'); // 'public'|'team'
   const [form, setForm] = useState({
-    name:'', start_time:'', end_time:'', description:'',
-    category:'concert', is_public:true, team_id:'', location_id:''
+    // bazowe
+    name:'', description:'',
+    start_time:'', end_time:'',
+    category:'concert', is_public:true, team_id:'', location_id:'',
+    // i18n (opcjonalne)
+    name_pl:'', name_en:'',
+    description_pl:'', description_en:''
   });
 
   const [editId, setEditId] = useState(null);
@@ -60,18 +72,32 @@ export default function AdminEvents(){
     e.preventDefault(); setErr(''); setOk('');
     try{
       const payload = {
-        name: form.name.trim(),
-        description: form.description || '',
+        // bazowe
+        name: (form.name || form.name_pl || form.name_en || '').trim(),
+        description: form.description || form.description_pl || form.description_en || '',
         start_time: form.start_time ? new Date(form.start_time).toISOString() : null,
         end_time: form.end_time ? new Date(form.end_time).toISOString() : null,
         category: form.category,
         is_public: mode === 'public',
         team_id: mode === 'team' && form.team_id ? Number(form.team_id) : null,
         location_id: form.location_id ? Number(form.location_id) : null,
+        // i18n — wyślij tylko jeśli coś wpisano (backend może to na razie zignorować)
+        ...(form.name_pl ? { name_pl: form.name_pl } : {}),
+        ...(form.name_en ? { name_en: form.name_en } : {}),
+        ...(form.description_pl ? { description_pl: form.description_pl } : {}),
+        ...(form.description_en ? { description_en: form.description_en } : {}),
       };
+
       const created = await adminCreateEvent(payload);
       setEvents(v=>[...v, created].sort((a,b)=>new Date(a.start_time)-new Date(b.start_time)));
-      setForm({ name:'', start_time:'', end_time:'', description:'', category: mode==='public'?'concert':'party', is_public: mode==='public', team_id:'', location_id:'' });
+      setForm({
+        name:'', description:'',
+        start_time:'', end_time:'',
+        category: mode==='public'?'concert':'party',
+        is_public: mode==='public',
+        team_id:'', location_id:'',
+        name_pl:'', name_en:'', description_pl:'', description_en:''
+      });
       setOk('Dodano wydarzenie ✅');
       setTimeout(()=>setOk(''), 1500);
     }catch(e){
@@ -89,7 +115,12 @@ export default function AdminEvents(){
       end_time: toInputDT(ev.end_time),
       description: ev.description || '',
       location_id: ev.location_id || '',
-      team_id: ev.team_id || ''
+      team_id: ev.team_id || '',
+      // i18n — jeśli backend już zwraca, pokażemy; jeśli nie, zostaną puste
+      name_pl: ev.name_pl || '',
+      name_en: ev.name_en || '',
+      description_pl: ev.description_pl || '',
+      description_en: ev.description_en || ''
     });
   };
 
@@ -103,7 +134,11 @@ export default function AdminEvents(){
         end_time: edit.end_time ? new Date(edit.end_time).toISOString() : null,
         description: edit.description,
         location_id: edit.location_id ? Number(edit.location_id) : null,
-        team_id: edit.team_id ? Number(edit.team_id) : null
+        team_id: edit.team_id ? Number(edit.team_id) : null,
+        ...(edit.name_pl ? { name_pl: edit.name_pl } : {}),
+        ...(edit.name_en ? { name_en: edit.name_en } : {}),
+        ...(edit.description_pl ? { description_pl: edit.description_pl } : {}),
+        ...(edit.description_en ? { description_en: edit.description_en } : {}),
       };
       const upd = await adminUpdateEvent(id, payload);
       setEvents(v=>v.map(x=>x.id===id? upd : x));
@@ -159,6 +194,24 @@ export default function AdminEvents(){
             <input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required/>
           </label><br/><br/>
 
+          <details>
+            <summary>Tłumaczenia (PL/EN) — opcjonalnie</summary>
+            <div style={{display:'grid', gap:8, marginTop:8}}>
+              <label>Tytuł (PL)<br/>
+                <input value={form.name_pl} onChange={e=>setForm(f=>({...f,name_pl:e.target.value}))}/>
+              </label>
+              <label>Opis (PL)<br/>
+                <textarea value={form.description_pl} onChange={e=>setForm(f=>({...f,description_pl:e.target.value}))}/>
+              </label>
+              <label>Title (EN)<br/>
+                <input value={form.name_en} onChange={e=>setForm(f=>({...f,name_en:e.target.value}))}/>
+              </label>
+              <label>Description (EN)<br/>
+                <textarea value={form.description_en} onChange={e=>setForm(f=>({...f,description_en:e.target.value}))}/>
+              </label>
+            </div>
+          </details><br/>
+
           <label>Kategoria<br/>
             <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
               {cats.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
@@ -199,6 +252,24 @@ export default function AdminEvents(){
                 <label>Nazwa<br/>
                   <input value={edit.name} onChange={e=>setEdit(f=>({...f,name:e.target.value}))}/>
                 </label><br/><br/>
+                <details>
+                  <summary>Tłumaczenia (PL/EN) — opcjonalnie</summary>
+                  <div style={{display:'grid', gap:8, marginTop:8}}>
+                    <label>Tytuł (PL)<br/>
+                      <input value={edit.name_pl} onChange={e=>setEdit(f=>({...f,name_pl:e.target.value}))}/>
+                    </label>
+                    <label>Opis (PL)<br/>
+                      <textarea value={edit.description_pl} onChange={e=>setEdit(f=>({...f,description_pl:e.target.value}))}/>
+                    </label>
+                    <label>Title (EN)<br/>
+                      <input value={edit.name_en} onChange={e=>setEdit(f=>({...f,name_en:e.target.value}))}/>
+                    </label>
+                    <label>Description (EN)<br/>
+                      <textarea value={edit.description_en} onChange={e=>setEdit(f=>({...f,description_en:e.target.value}))}/>
+                    </label>
+                  </div>
+                </details><br/>
+
                 <label>Kategoria<br/>
                   <select value={edit.category} onChange={e=>setEdit(f=>({...f,category:e.target.value}))}>
                     {(ev.team_id?TEAM_CATEGORIES:PUBLIC_CATEGORIES).map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
@@ -229,7 +300,10 @@ export default function AdminEvents(){
               <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'center'}}>
                 <div>
                   <b>{ev.name}</b> {ev.team_name ? <small>• {ev.team_name}</small> : <small>• PUBLIC</small>}<br/>
-                  <small>{new Date(ev.start_time).toLocaleString()} {ev.end_time ? `– ${new Date(ev.end_time).toLocaleString()}`:''}</small><br/>
+                  <small>
+                    {new Date(ev.start_time).toLocaleString()}
+                    {ev.end_time ? ` – ${new Date(ev.end_time).toLocaleString()}`:''}
+                  </small><br/>
                   <small>kategoria: {ev.category} • lokacja: {ev.location_name || '—'}</small>
                 </div>
                 <div style={{display:'flex', gap:8}}>
