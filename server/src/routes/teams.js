@@ -8,6 +8,13 @@ const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/validators');
 const jwt = require('jsonwebtoken');
 
+// helper do slugów
+function slugify(str){
+  return String(str)
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
 // === ADMIN: lista zespołów ===
 // GET /api/teams
 router.get('/', requireAdmin, async (_req, res, next) => {
@@ -19,6 +26,72 @@ router.get('/', requireAdmin, async (_req, res, next) => {
   } catch (e) {
     next(e);
   }
+});
+
+// === ADMIN: utworzenie zespołu ===
+// POST /api/teams
+router.post('/',
+  requireAdmin,
+  [
+    body('name').trim().isLength({ min: 3 }),
+    body('slug').optional().trim().isLength({ min: 2 }),
+    body('country').optional({ nullable: true }).isString(),
+    handleValidationErrors
+  ],
+  async (req, res, next) => {
+    try {
+      const { name, slug, country } = req.body || {};
+      const s = slug && slug.trim() ? slugify(slug) : slugify(name);
+      const { rows } = await pool.query(
+        `INSERT INTO teams (name, slug, country)
+         VALUES ($1,$2,$3)
+         RETURNING id, name, slug, country`,
+        [name, s, country || null]
+      );
+      res.status(201).json(rows[0]);
+    } catch (e) { next(e); }
+  }
+);
+
+// === ADMIN: aktualizacja zespołu ===
+// PUT /api/teams/:id
+router.put('/:id',
+  requireAdmin,
+  [
+    body('name').optional().trim().isLength({ min: 3 }),
+    body('slug').optional().trim().isLength({ min: 2 }),
+    body('country').optional({ nullable: true }).isString(),
+    handleValidationErrors
+  ],
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { name, slug, country } = req.body || {};
+      const s = slug ? slugify(slug) : null;
+      const { rows } = await pool.query(
+        `UPDATE teams SET
+           name = COALESCE($2, name),
+           slug = COALESCE($3, slug),
+           country = COALESCE($4, country)
+         WHERE id=$1
+         RETURNING id, name, slug, country`,
+        [id, name || null, s, (country !== undefined ? country : null)]
+      );
+      if (!rows.length) return res.status(404).json({ error: 'not_found' });
+      res.json(rows[0]);
+    } catch (e) { next(e); }
+  }
+);
+
+// === ADMIN: kasowanie zespołu ===
+// DELETE /api/teams/:id
+router.delete('/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const r = await pool.query('DELETE FROM teams WHERE id=$1', [id]);
+    if (!r.rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
 });
 
 // === ADMIN: reset/ustaw PIN zespołu ===
@@ -51,7 +124,7 @@ router.patch(
 function requireTeam(req, res, next) {
   try {
     const auth = req.headers.authorization || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+       const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
     if (!token) return res.status(401).json({ error: 'unauthorized' });
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     if (!payload?.teamId) return res.status(403).json({ error: 'forbidden' });
@@ -63,7 +136,6 @@ function requireTeam(req, res, next) {
 }
 
 // === ZESPÓŁ: własne dane + plan ===
-// dzięki aliasowi mountu w server.js działa pod /api/team/me i /api/teams/me
 router.get('/me', requireTeam, async (req, res) => {
   try {
     const { rows: trows } = await pool.query(

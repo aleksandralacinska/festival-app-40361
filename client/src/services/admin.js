@@ -1,9 +1,11 @@
 import { API_URL } from './api';
-const ORIGIN = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:4000';
-const API = ORIGIN.endsWith('/api') ? ORIGIN : `${ORIGIN}/api`;
+const API = API_URL;
+// const ORIGIN = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:4000';
+// const API = ORIGIN.endsWith('/api') ? ORIGIN : `${ORIGIN}/api`;
 
 export function setAdminToken(t){ localStorage.setItem('admin_token', t); }
 export function getAdminToken(){ return localStorage.getItem('admin_token'); }
+export function clearAdminToken(){ localStorage.removeItem('admin_token'); }
 
 export async function adminLogin(user, pass){
   const r = await fetch(`${API}/admin/login`, {

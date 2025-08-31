@@ -93,7 +93,7 @@ export default function App() {
         </header>
 
         <Routes>
-          {/* PWA */}
+          {/* public */}
           <Route path="/" element={<HomePage />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/event/:id" element={<EventDetailsPage />} />
@@ -101,17 +101,21 @@ export default function App() {
           <Route path="/team" element={<TeamPage />} />
           <Route path="/settings" element={<SettingsPage />} />
 
-          {/* Admin */}
-          <Route path="/admin" element={<AdminLogin />} />
+          {/* admin: login */}
+          <Route path="/admin/login" element={<AdminLogin />} />
 
+          {/* admin: layout + podstrony */}
           <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="events" replace />} />
             <Route path="events" element={<AdminEvents />} />
             <Route path="locations" element={<AdminLocations />} />
             <Route path="teams/create" element={<AdminTeamsCreate />} />
             <Route path="teams/pin" element={<AdminTeamsPin />} />
             <Route path="push" element={<AdminPush />} />
-            <Route index element={<Navigate to="events" replace />} />
           </Route>
+
+          {/* fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
       <Nav />

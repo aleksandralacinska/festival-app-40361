@@ -61,7 +61,8 @@ router.get('/all', requireAdmin, async (req, res, next) => {
     const n = nameCol('e', lang);
     const d = descCol('e', lang);
     const ln = nameCol('l', lang);
-    const tn = nameCol('t', lang);
+    // UWAGA: teams nie mają i18n -> bierzemy zawsze t.name
+    const tn = `t.name`;
 
     const { rows } = await pool.query(`
       SELECT e.*,
@@ -227,7 +228,7 @@ router.put('/:id',
 
       const after = rows[0];
 
-      // PUSH: zmiana (tylko gdy sensowna)
+      // PUSH: zmiana
       try { await notifyEventUpdate(before, after); } catch {}
 
       res.json(after);

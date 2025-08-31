@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getToken } from '../services/auth';
+import { API_URL } from '../services/api';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const API = API_URL;
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 function urlBase64ToUint8Array(base64String) {

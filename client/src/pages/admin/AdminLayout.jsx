@@ -4,10 +4,16 @@ import { getAdminToken } from '../../services/admin';
 
 export default function AdminLayout() {
   const nav = useNavigate();
+
   useEffect(() => {
     const t = getAdminToken();
     if (!t) nav('/admin', { replace: true });
   }, [nav]);
+
+  const logout = () => {
+    localStorage.removeItem('admin_token');
+    nav('/admin', { replace: true });
+  };
 
   return (
     <div className="admin-layout">
@@ -34,6 +40,12 @@ export default function AdminLayout() {
             <i className="fa-solid fa-bell" aria-hidden /> Push
           </NavLink>
         </nav>
+
+        <div style={{ marginTop: 'auto', padding: 16 }}>
+          <button className="btn" onClick={logout}>
+            <i className="fa-solid fa-right-from-bracket" aria-hidden /> Wyloguj
+          </button>
+        </div>
       </aside>
 
       <main className="admin-content">

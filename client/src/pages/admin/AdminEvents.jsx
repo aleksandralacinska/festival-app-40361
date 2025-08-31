@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   adminCreateEvent,
   adminUpdateEvent,
   adminFetchEventsAll,
   adminDeleteEvent,
-  adminGetTeams
+  adminGetTeams,
+  getAdminToken
 } from '../../services/admin';
 import { fetchLocations } from '../../services/locations';
 
@@ -32,6 +34,8 @@ function toInputDT(iso){
 }
 
 export default function AdminEvents(){
+  const nav = useNavigate();
+
   const [events, setEvents] = useState([]);
   const [teams, setTeams] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -52,11 +56,16 @@ export default function AdminEvents(){
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
 
+  // GUARd: najpierw sprawdzamy token; dopiero potem fetch
   useEffect(()=>{
+    if(!getAdminToken()){
+      nav('/admin', { replace: true });
+      return;
+    }
     adminFetchEventsAll().then(setEvents).catch(()=>setErr('Błąd listy'));
     adminGetTeams().then(setTeams).catch(()=>{});
     fetchLocations().then(setLocations).catch(()=>{});
-  }, []);
+  }, [nav]);
 
   useEffect(()=>{
     if (mode === 'public') {
@@ -81,7 +90,7 @@ export default function AdminEvents(){
         is_public: mode === 'public',
         team_id: mode === 'team' && form.team_id ? Number(form.team_id) : null,
         location_id: form.location_id ? Number(form.location_id) : null,
-        // i18n — wyślij tylko jeśli coś wpisano (backend może to na razie zignorować)
+        // i18n — wyślij tylko jeśli coś wpisano
         ...(form.name_pl ? { name_pl: form.name_pl } : {}),
         ...(form.name_en ? { name_en: form.name_en } : {}),
         ...(form.description_pl ? { description_pl: form.description_pl } : {}),
@@ -116,7 +125,7 @@ export default function AdminEvents(){
       description: ev.description || '',
       location_id: ev.location_id || '',
       team_id: ev.team_id || '',
-      // i18n — jeśli backend już zwraca, pokażemy; jeśli nie, zostaną puste
+      // i18n — jeśli backend zwraca, pokaż; jeśli nie, zostaw puste
       name_pl: ev.name_pl || '',
       name_en: ev.name_en || '',
       description_pl: ev.description_pl || '',
@@ -252,6 +261,7 @@ export default function AdminEvents(){
                 <label>Nazwa<br/>
                   <input value={edit.name} onChange={e=>setEdit(f=>({...f,name:e.target.value}))}/>
                 </label><br/><br/>
+
                 <details>
                   <summary>Tłumaczenia (PL/EN) — opcjonalnie</summary>
                   <div style={{display:'grid', gap:8, marginTop:8}}>

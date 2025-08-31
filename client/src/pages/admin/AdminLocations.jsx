@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchLocations } from '../../services/locations';
-import { adminCreateLocation, adminUpdateLocation, adminDeleteLocation } from '../../services/admin';
+import { adminCreateLocation, adminUpdateLocation, adminDeleteLocation, getAdminToken } from '../../services/admin';
 
 export default function AdminLocations(){
+  const nav = useNavigate();
+
   const [list, setList] = useState([]);
   const [err, setErr] = useState('');
   const [form, setForm] = useState({
@@ -17,7 +20,14 @@ export default function AdminLocations(){
   const [editId, setEditId] = useState(null);
   const [edit, setEdit] = useState({});
 
-  useEffect(()=>{ fetchLocations().then(setList).catch(()=>setErr('Błąd listy')); }, []);
+  // GUARd: najpierw token; dopiero fetch
+  useEffect(()=>{
+    if(!getAdminToken()){
+      nav('/admin', { replace: true });
+      return;
+    }
+    fetchLocations().then(setList).catch(()=>setErr('Błąd listy'));
+  }, [nav]);
 
   const create = async (e)=>{
     e.preventDefault(); setErr('');
@@ -54,7 +64,7 @@ export default function AdminLocations(){
       lat: l.lat,
       lng: l.lng,
       description: l.description || '',
-      // jeżeli backend zacznie zwracać i18n, pokażemy je; inaczej zostaną puste
+      // i18n — jeśli backend zwraca, pokaże; jeśli nie, zostaw puste
       name_pl: l.name_pl || '',
       name_en: l.name_en || '',
       description_pl: l.description_pl || '',
