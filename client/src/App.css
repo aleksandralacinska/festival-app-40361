@@ -1,3 +1,4 @@
+/* --- GLOBAL / ROOT --- */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -19,14 +20,9 @@
 }
 
 @keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
-
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
@@ -37,29 +33,31 @@
   padding: 2em;
 }
 
-.settings-card label { 
-  display: block; 
-  margin-bottom: 8px; 
+.settings-card label {
+  display: block;
+  margin-bottom: 8px;
 }
 
 .read-the-docs {
   color: #888;
 }
 
-.home-hero{
+/* --- HERO (tło od góry) --- */
+.home-hero {
   position: relative;
   width: 100%;
-  min-height: 65vh;               /* możesz zwiększyć do 55–65vh */
+  min-height: 65vh;
   border-radius: 16px;
   background-size: cover;
-  background-position: center;
+  background-position: top center; /* klucz: trzymaj górę w kadrze */
+  background-repeat: no-repeat;
   box-shadow: 0 2px 10px rgba(0,0,0,.08);
   display: flex;
-  align-items: flex-end;          /* tekst przy dole */
+  align-items: flex-end;
   overflow: hidden;
 }
 
-.home-hero__inner{
+.home-hero__inner {
   width: 100%;
   color: #fff;
   padding: 20px;
@@ -67,20 +65,20 @@
   font-family: 'Montserrat', sans-serif;
 }
 
-.home-hero__title{
+.home-hero__title {
   margin: 8px 0 6px;
   font-size: 28px;
   line-height: 1.15;
   font-weight: 700;
 }
 
-.home-hero__subtitle{
+.home-hero__subtitle {
   margin: 0;
   font-size: 14px;
   color: #f1f1f1;
 }
 
-.badge{
+.badge {
   display: inline-block;
   background: var(--primary, #fbb800);
   color: #000;
@@ -96,27 +94,25 @@
   align-items: center;
   gap: 8px;
 }
-
 .notif-dot {
   width: 10px;
   height: 10px;
   border-radius: 999px;
   display: inline-block;
 }
-
 .notif-status {
   margin-left: auto;
   color: #737373;
 }
 
 /* --- ADMIN LAYOUT --- */
-.admin-layout{
+.admin-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: 16px;
   min-height: 70vh;
 }
-.admin-sidebar{
+.admin-sidebar {
   background: #fff;
   border-radius: 12px;
   padding: 16px;
@@ -125,29 +121,134 @@
   top: 16px;
   height: fit-content;
 }
-.admin-brand{
+.admin-brand {
   display: flex; align-items: center; gap: 10px;
   font-weight: 800; color: #333; margin-bottom: 12px;
 }
-.admin-menu{
-  display: grid; gap: 6px;
-}
-.admin-link{
+.admin-menu { display: grid; gap: 6px; }
+.admin-link {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 10px; border-radius: 8px; color: #333; text-decoration: none;
 }
-.admin-link.active, .admin-link:hover{ background: #f7f7f7; }
+.admin-link.active, .admin-link:hover { background: #f7f7f7; }
+.admin-content { background: transparent; }
 
-.admin-content{
-  background: transparent;
-}
-
-/* drobne ujednolicenie formularzy w adminie */
 .admin-content .card input,
 .admin-content .card select,
-.admin-content .card textarea{
+.admin-content .card textarea {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid #ececec;
   border-radius: 8px;
+}
+
+/* --- PAGE WRAPPERS & MESSAGES --- */
+.page-schedule {
+  font-family: 'Montserrat', sans-serif;
+  padding: 24px;
+  background: #ececec;
+  min-height: 100vh;
+  text-align: left; /* harmonogram lepiej wygląda lewostronnie */
+}
+.page-message {
+  font-family: 'Montserrat', sans-serif;
+  padding: 24px;
+}
+.page-message.error { color: crimson; }
+
+/* --- SCHEDULE --- */
+.schedule-title {
+  margin: 0 0 16px 0;
+  color: #4a4a4a;
+}
+.schedule-subtitle {
+  margin-top: 0;
+  color: #737373;
+}
+
+.no-events {
+  background: #ffffff;
+  border-radius: 12px;
+  color: #4a4a4a;
+}
+
+.schedule-section { margin-bottom: 20px; }
+
+.schedule-day-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.accent-bar {
+  width: 8px;
+  height: 24px;
+  background: var(--primary, #fbb800);
+  border-radius: 4px;
+}
+.schedule-day-title {
+  margin: 0;
+  font-size: 18px;
+  color: #4a4a4a;
+  text-transform: capitalize; /* dni tygodnia ładniej na PL */
+}
+
+.schedule-list {
+  display: grid;
+  gap: 8px;
+}
+
+.event-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr; /* desktop: godzina po lewej */
+  gap: 12px;
+  align-items: center;
+}
+
+.event-time {
+  color: #737373;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.event-body {
+  min-width: 0;            /* pozwala zawijać długie tytuły */
+  overflow-wrap: anywhere; /* estetyczne łamanie */
+}
+
+.event-title {
+  color: #4a4a4a;
+  font-weight: 700;
+}
+
+.event-meta {
+  color: #737373;
+  font-size: 12px;
+}
+
+.event-chip .chip {
+  display: inline-block;
+  font-size: 12px;
+  background: var(--primary, #fbb800);
+  color: #000;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* --- MOBILE: jedna kolumna (godzina nad opisem) --- */
+@media (max-width: 600px) {
+  .event-card {
+    grid-template-columns: 1fr;
+    align-items: start;
+    text-align: left;
+  }
+  .event-time {
+    margin-bottom: 4px;
+  }
 }

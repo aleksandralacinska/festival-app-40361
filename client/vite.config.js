@@ -24,7 +24,7 @@ export default defineConfig({
 
       // manifest PWA
       manifest: {
-        name: 'Festival PWA',
+        name: 'Festival APP',
         short_name: 'Festival',
         description: 'PWA dla międzynarodowego festiwalu (harmonogram, mapa, powiadomienia).',
         theme_color: '#fbb800',

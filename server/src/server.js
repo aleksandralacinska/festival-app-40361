@@ -22,8 +22,36 @@ const app = express();
 
 // CORS (dev)
 const CLIENT = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+
+const STATIC_ALLOWED = new Set([
+  CLIENT,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+]);
+
+// app.use(cors({
+//   origin: [CLIENT, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+//   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+//   allowedHeaders: ['Content-Type','Authorization'],
+// }));
 app.use(cors({
-  origin: [CLIENT, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin(origin, cb) {
+    // brak nagłówka Origin -> zezwól
+    if (!origin) return cb(null, true);
+    try {
+      const u = new URL(origin);
+      const host = u.hostname;
+
+      const allowed =
+        STATIC_ALLOWED.has(origin) ||
+        host.endsWith('.netlify.app') ||
+        host.endsWith('.netlify.com');
+
+      return allowed ? cb(null, true) : cb(new Error('CORS: origin not allowed'));
+    } catch {
+      return cb(new Error('CORS: invalid origin'));
+    }
+  },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
 }));

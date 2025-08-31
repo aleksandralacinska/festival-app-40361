@@ -16,10 +16,10 @@ export default function HomePage(){
         aria-label={t('welcome')}
       >
         <div className="home-hero__inner">
-          <span className="badge">Festival PWA</span>
+          <span className="badge">Festival APP</span>
           <h1 className="home-hero__title">{t('welcome')}</h1>
           <p className="home-hero__subtitle">
-            {t('home_tagline', 'Harmonogram, mapa i ważne ogłoszenia w jednym miejscu.')}
+            {t('home_tagline', 'Dzień dobry!')}
           </p>
         </div>
       </section>
