@@ -32,6 +32,22 @@ registerSW({
   }
 });
 
+// --- PWA install events (global) ---
+window.__pwaInstallPrompt = null;
+
+// Chromium/Edge/Android: event informujący, że można pokazać przycisk instalacji
+window.addEventListener('beforeinstallprompt', (ev) => {
+  ev.preventDefault();
+  window.__pwaInstallPrompt = ev;
+  window.dispatchEvent(new CustomEvent('pwa:can-install'));
+});
+
+// Gdy aplikacja została zainstalowana
+window.addEventListener('appinstalled', () => {
+  window.__pwaInstallPrompt = null;
+  window.dispatchEvent(new CustomEvent('pwa:installed'));
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

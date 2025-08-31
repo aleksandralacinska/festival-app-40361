@@ -15,9 +15,25 @@ function urlBase64ToUint8Array(base64String) {
   return out;
 }
 
+// ——— helpers PWA install (pure JS) ———
+function isStandalone() {
+  const standaloneMQ = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  const iosStandalone = 'standalone' in navigator && navigator.standalone === true;
+  return !!(standaloneMQ || iosStandalone);
+}
+function isIOS() {
+  const ua = window.navigator.userAgent || '';
+  return /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+}
+function isSafari() {
+  const ua = window.navigator.userAgent || '';
+  return /Safari/.test(ua) && !/Chrome|Chromium|CriOS|Edg/i.test(ua);
+}
+
 export default function SettingsPage() {
   const { i18n, t } = useTranslation();
 
+  // ===== Powiadomienia =====
   const [supported, setSupported] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -39,7 +55,13 @@ export default function SettingsPage() {
         return;
       }
       try {
-        const reg = await navigator.serviceWorker.ready;
+        const ready = navigator.serviceWorker.ready;
+        let reg;
+        try {
+          reg = await ready;
+        } catch {
+          throw new Error('sw_not_ready');
+        }
         const sub = await reg.pushManager.getSubscription();
         setEnabled(!!sub);
       } catch {
@@ -55,33 +77,17 @@ export default function SettingsPage() {
       const r = await fetch(`${API}/team/me`, { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) return null;
       const data = await r.json();
-      return data?.team?.id ?? null;
+      return data && data.team ? data.team.id : null;
     } catch {
       return null;
     }
   }
 
   async function subscribePush() {
-    // 1) Czekamy na SW z timeoutem (8s) – jeśli SW nie jest gotowy, przerywamy z czytelnym błędem
-    const ready = Promise.race([
-      navigator.serviceWorker.ready,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('sw_not_ready')), 8000)),
-    ]);
-  
-    let reg;
-    try {
-      reg = await ready;
-    } catch (err) {
-      if (import.meta.env.DEV) console.debug('[push] SW ready wait failed:', err);
-      throw new Error('sw_not_ready');
-    }
-  
-    // 2) Klucz VAPID
-    if (!VAPID_PUBLIC_KEY) throw new Error('missing_vapid_key');
-  
-    // 3) Pobierz lub utwórz subskrypcję
+    const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
+      if (!VAPID_PUBLIC_KEY) throw new Error('missing_vapid_key');
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') throw new Error('permission_denied');
       sub = await reg.pushManager.subscribe({
@@ -89,12 +95,8 @@ export default function SettingsPage() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY.trim()),
       });
     }
-  
-    // 4) Opcjonalne przypięcie do zespołu
     const teamId = await fetchMyTeamId();
     const payload = { endpoint: sub.endpoint, keys: sub.toJSON().keys, teamId: teamId || null };
-  
-    // 5) Zapis subskrypcji w backendzie
     const r = await fetch(`${API}/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -103,7 +105,6 @@ export default function SettingsPage() {
     if (!r.ok) throw new Error('server_subscribe_failed');
     return true;
   }
-  
 
   async function unsubscribePush() {
     const reg = await navigator.serviceWorker.ready;
@@ -125,18 +126,10 @@ export default function SettingsPage() {
       await subscribePush();
       setEnabled(true);
       setMsg(t('notifications_toast_enabled'));
-    } catch (e) {
-      if (e?.message === 'permission_denied') {
-        setMsg(t('notifications_toast_permission_denied'));
-      } else if (e?.message === 'sw_not_ready') {
-        setMsg('Service Worker nieaktywny. Włącz PWA w dev albo uruchom build produkcyjny.');
-      } else if (e?.message === 'missing_vapid_key') {
-        setMsg('Brak VAPID public key w kliencie (VITE_VAPID_PUBLIC_KEY).');
-      } else if (e?.message === 'server_subscribe_failed') {
-        setMsg('Serwer odrzucił subskrypcję (sprawdź /api/push/subscribe).');
-      } else {
-        setMsg(t('notifications_toast_enable_failed'));
-      }
+    } catch (err) {
+      const errMsg = err && typeof err === 'object' && 'message' in err ? err.message : '';
+      if (errMsg === 'permission_denied') setMsg(t('notifications_toast_permission_denied'));
+      else setMsg(t('notifications_toast_enable_failed'));
     } finally {
       setBusy(false);
     }
@@ -156,12 +149,54 @@ export default function SettingsPage() {
     }
   };
 
+  // ===== Instalacja PWA =====
+  const [installed, setInstalled] = useState(isStandalone());
+  const [canInstall, setCanInstall] = useState(!!window.__pwaInstallPrompt);
+
+  useEffect(() => {
+    const onCanInstall = () => setCanInstall(true);
+    const onInstalled = () => { setInstalled(true); setCanInstall(false); };
+
+    window.addEventListener('pwa:can-install', onCanInstall);
+    window.addEventListener('pwa:installed', onInstalled);
+
+    if (window.__pwaInstallPrompt) setCanInstall(true);
+
+    const mq = window.matchMedia && window.matchMedia('(display-mode: standalone)');
+    const handleMQ = (e) => { if (e.matches) { setInstalled(true); setCanInstall(false); } };
+    mq && mq.addEventListener && mq.addEventListener('change', handleMQ);
+
+    return () => {
+      window.removeEventListener('pwa:can-install', onCanInstall);
+      window.removeEventListener('pwa:installed', onInstalled);
+      mq && mq.removeEventListener && mq.removeEventListener('change', handleMQ);
+    };
+  }, []);
+
+  async function onInstallClick() {
+    const promptEvt = window.__pwaInstallPrompt;
+    if (!promptEvt) return;
+    try {
+      promptEvt.prompt();
+      const choice = await promptEvt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        setCanInstall(false);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const showIOSHint = !installed && !canInstall && isIOS() && isSafari();
+
   return (
     <>
       <h2>{t('settings')}</h2>
 
       <div style={{ display: 'grid', placeItems: 'center', minHeight: '50vh' }}>
         <div style={{ width: '100%', maxWidth: 420, display: 'grid', gap: 16 }}>
+
+          {/* Język */}
           <div className="card" style={{ display: 'grid', gap: 8 }}>
             <label htmlFor="lang-select" style={{ fontWeight: 700, marginBottom: 6 }}>
               {t('language')}
@@ -177,6 +212,7 @@ export default function SettingsPage() {
             </select>
           </div>
 
+          {/* Powiadomienia */}
           <div className="card" style={{ display: 'grid', gap: 12 }}>
             <div style={{ fontWeight: 700 }}>{t('notifications_title')}</div>
             <div style={{ color: 'var(--gray-700)' }}>{statusText}</div>
@@ -195,6 +231,32 @@ export default function SettingsPage() {
 
             {msg && <small>{msg}</small>}
           </div>
+
+          {/* Instalacja PWA */}
+          {!installed && (
+            <div className="card" style={{ display: 'grid', gap: 12 }}>
+              <div style={{ fontWeight: 700 }}>Instalacja aplikacji</div>
+
+              {canInstall && (
+                <button className="btn" onClick={onInstallClick}>
+                  Zainstaluj aplikację/Install application
+                </button>
+              )}
+
+              {showIOSHint && (
+                <small style={{ color: 'var(--gray-700)' }}>
+                  Na iPhonie/iPadzie: stuknij <b>Udostępnij</b> (ikona <i className="fa-solid fa-share-from-square" aria-hidden />) i wybierz <b>„Do ekranu początkowego”</b>.
+                </small>
+              )}
+
+              {!canInstall && !showIOSHint && (
+                <small style={{ color: 'var(--gray-700)' }}>
+                  Jeśli przycisk nie jest dostępny, przeglądarka może nie wspierać instalacji PWA na tym urządzeniu.
+                </small>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </>

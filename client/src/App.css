@@ -42,14 +42,14 @@
   color: #888;
 }
 
-/* --- HERO (tło od góry) --- */
+/* --- HERO --- */
 .home-hero {
   position: relative;
   width: 100%;
   min-height: 65vh;
   border-radius: 16px;
   background-size: cover;
-  background-position: top center; /* klucz: trzymaj górę w kadrze */
+  background-position: top center;
   background-repeat: no-repeat;
   box-shadow: 0 2px 10px rgba(0,0,0,.08);
   display: flex;
@@ -148,7 +148,7 @@
   padding: 24px;
   background: #ececec;
   min-height: 100vh;
-  text-align: left; /* harmonogram lepiej wygląda lewostronnie */
+  text-align: left;
 }
 .page-message {
   font-family: 'Montserrat', sans-serif;
@@ -190,7 +190,7 @@
   margin: 0;
   font-size: 18px;
   color: #4a4a4a;
-  text-transform: capitalize; /* dni tygodnia ładniej na PL */
+  text-transform: capitalize;
 }
 
 .schedule-list {
@@ -204,7 +204,7 @@
   padding: 12px;
   box-shadow: 0 1px 2px rgba(0,0,0,.05);
   display: grid;
-  grid-template-columns: minmax(120px, auto) 1fr; /* desktop: godzina po lewej */
+  grid-template-columns: minmax(120px, auto) 1fr; /* DESKTOP: godzina po lewej */
   gap: 12px;
   align-items: center;
 }
@@ -216,8 +216,8 @@
 }
 
 .event-body {
-  min-width: 0;            /* pozwala zawijać długie tytuły */
-  overflow-wrap: anywhere; /* estetyczne łamanie */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .event-title {
@@ -241,7 +241,7 @@
   margin-top: 6px;
 }
 
-/* --- MOBILE: jedna kolumna (godzina nad opisem) --- */
+/* --- MOBILE: godzina nad opisem --- */
 @media (max-width: 600px) {
   .event-card {
     grid-template-columns: 1fr;
