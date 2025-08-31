@@ -62,10 +62,26 @@ export default function SettingsPage() {
   }
 
   async function subscribePush() {
-    const reg = await navigator.serviceWorker.ready;
+    // 1) Czekamy na SW z timeoutem (8s) – jeśli SW nie jest gotowy, przerywamy z czytelnym błędem
+    const ready = Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('sw_not_ready')), 8000)),
+    ]);
+  
+    let reg;
+    try {
+      reg = await ready;
+    } catch (err) {
+      if (import.meta.env.DEV) console.debug('[push] SW ready wait failed:', err);
+      throw new Error('sw_not_ready');
+    }
+  
+    // 2) Klucz VAPID
+    if (!VAPID_PUBLIC_KEY) throw new Error('missing_vapid_key');
+  
+    // 3) Pobierz lub utwórz subskrypcję
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
-      if (!VAPID_PUBLIC_KEY) throw new Error('missing_vapid_key');
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') throw new Error('permission_denied');
       sub = await reg.pushManager.subscribe({
@@ -73,8 +89,12 @@ export default function SettingsPage() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY.trim()),
       });
     }
+  
+    // 4) Opcjonalne przypięcie do zespołu
     const teamId = await fetchMyTeamId();
     const payload = { endpoint: sub.endpoint, keys: sub.toJSON().keys, teamId: teamId || null };
+  
+    // 5) Zapis subskrypcji w backendzie
     const r = await fetch(`${API}/push/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -83,6 +103,7 @@ export default function SettingsPage() {
     if (!r.ok) throw new Error('server_subscribe_failed');
     return true;
   }
+  
 
   async function unsubscribePush() {
     const reg = await navigator.serviceWorker.ready;
@@ -105,8 +126,17 @@ export default function SettingsPage() {
       setEnabled(true);
       setMsg(t('notifications_toast_enabled'));
     } catch (e) {
-      if (e?.message === 'permission_denied') setMsg(t('notifications_toast_permission_denied'));
-      else setMsg(t('notifications_toast_enable_failed'));
+      if (e?.message === 'permission_denied') {
+        setMsg(t('notifications_toast_permission_denied'));
+      } else if (e?.message === 'sw_not_ready') {
+        setMsg('Service Worker nieaktywny. Włącz PWA w dev albo uruchom build produkcyjny.');
+      } else if (e?.message === 'missing_vapid_key') {
+        setMsg('Brak VAPID public key w kliencie (VITE_VAPID_PUBLIC_KEY).');
+      } else if (e?.message === 'server_subscribe_failed') {
+        setMsg('Serwer odrzucił subskrypcję (sprawdź /api/push/subscribe).');
+      } else {
+        setMsg(t('notifications_toast_enable_failed'));
+      }
     } finally {
       setBusy(false);
     }

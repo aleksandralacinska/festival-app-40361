@@ -40,7 +40,9 @@ export default defineConfig({
 
       // dev: pozwala testować SW/push lokalnie
       devOptions: {
-        enabled: true
+        enabled: true,
+        type: 'module',
+        navigateFallback: 'index.html'
       }
     })
   ]
