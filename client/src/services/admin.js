@@ -1,12 +1,12 @@
 import { API_URL } from './api';
-const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-const API = `${API_ORIGIN}/api`;
+const ORIGIN = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API = ORIGIN.endsWith('/api') ? ORIGIN : `${ORIGIN}/api`;
 
 export function setAdminToken(t){ localStorage.setItem('admin_token', t); }
 export function getAdminToken(){ return localStorage.getItem('admin_token'); }
 
 export async function adminLogin(user, pass){
-  const r = await fetch(`${API_URL}/admin/login`, {
+  const r = await fetch(`${API}/admin/login`, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ user, pass })
@@ -16,7 +16,7 @@ export async function adminLogin(user, pass){
 }
 
 export async function adminCreateEvent(data){
-  const r = await fetch(`${API_URL}/events`, {
+  const r = await fetch(`${API}/events`, {
     method: 'POST',
     headers: {'Content-Type':'application/json', Authorization: `Bearer ${getAdminToken()}`},
     body: JSON.stringify(data)
@@ -26,7 +26,7 @@ export async function adminCreateEvent(data){
 }
 
 export async function adminUpdateEvent(id, data){
-  const r = await fetch(`${API_URL}/events/${id}`, {
+  const r = await fetch(`${API}/events/${id}`, {
     method: 'PUT',
     headers: {'Content-Type':'application/json', Authorization: `Bearer ${getAdminToken()}`},
     body: JSON.stringify(data)
@@ -51,7 +51,7 @@ export async function adminDeleteEvent(id){
 }
 
 export async function adminCreateLocation(data){
-  const r = await fetch(`${API_URL}/locations`, {
+  const r = await fetch(`${API}/locations`, {
     method: 'POST',
     headers: {'Content-Type':'application/json', Authorization: `Bearer ${getAdminToken()}`},
     body: JSON.stringify(data)
@@ -79,13 +79,13 @@ export async function adminDeleteLocation(id){
 }
 
 export async function adminGetTeams(){
-  const r = await fetch(`${API_URL}/teams`, { headers: { Authorization: `Bearer ${getAdminToken()}` }});
+  const r = await fetch(`${API}/teams`, { headers: { Authorization: `Bearer ${getAdminToken()}` }});
   if (!r.ok) throw new Error('get_teams_failed');
   return r.json();
 }
 
 export async function adminSetTeamPin(id, pin){
-  const r = await fetch(`${API_URL}/teams/${id}/pin`, {
+  const r = await fetch(`${API}/teams/${id}/pin`, {
     method: 'PATCH',
     headers: {'Content-Type':'application/json', Authorization: `Bearer ${getAdminToken()}`},
     body: JSON.stringify({ pin })
@@ -95,7 +95,7 @@ export async function adminSetTeamPin(id, pin){
 }
 
 export async function adminPushBroadcast({ title, body, url, teamId }){
-  const r = await fetch(`${API_URL}/push/broadcast`, {
+  const r = await fetch(`${API}/push/broadcast`, {
     method: 'POST',
     headers: {'Content-Type':'application/json', Authorization: `Bearer ${getAdminToken()}`},
     body: JSON.stringify({ title, body, url: url || null, teamId: teamId || null })
@@ -134,7 +134,7 @@ export async function adminDeleteTeam(id){
 }
 
 export async function adminRunReminders(){
-  const r = await fetch(`${API_URL}/push/run-reminders`, {
+  const r = await fetch(`${API}/push/run-reminders`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${getAdminToken()}` }
   });

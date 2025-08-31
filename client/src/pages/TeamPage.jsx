@@ -69,7 +69,7 @@ export default function TeamPage() {
                 onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
                 required
                 autoComplete="username"
-                placeholder="np. elk, promni, pw, polka"
+                placeholder="login"
               />
             </label>
             <br/><br/>
@@ -81,7 +81,7 @@ export default function TeamPage() {
                 onChange={e => setForm(f => ({ ...f, pin: e.target.value }))}
                 required
                 autoComplete="current-password"
-                placeholder="np. 1234"
+                placeholder="pin"
               />
             </label>
             <br/><br/>
