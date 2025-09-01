@@ -20,24 +20,19 @@ const pushRoutes = require('./routes/push');
 
 const app = express();
 
-// CORS (dev)
+// CORS
 const CLIENT = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
-
 const STATIC_ALLOWED = new Set([
   CLIENT,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ]);
 
-// app.use(cors({
-//   origin: [CLIENT, 'http://localhost:5173', 'http://127.0.0.1:5173'],
-//   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-//   allowedHeaders: ['Content-Type','Authorization'],
-// }));
 app.use(cors({
   origin(origin, cb) {
-    // brak nagłówka Origin -> zezwól
+    // Brak nagłówka Origin (np. curl) -> zezwól
     if (!origin) return cb(null, true);
+
     try {
       const u = new URL(origin);
       const host = u.hostname;
@@ -46,14 +41,14 @@ app.use(cors({
         STATIC_ALLOWED.has(origin) ||
         host.endsWith('.netlify.app') ||
         host.endsWith('.netlify.com');
-
-      return allowed ? cb(null, true) : cb(new Error('CORS: origin not allowed'));
+      return cb(null, !!allowed);
     } catch {
-      return cb(new Error('CORS: invalid origin'));
+      return cb(null, false);
     }
   },
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true,
 }));
 
 // Logi HTTP
