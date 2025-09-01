@@ -60,9 +60,6 @@ app.use(cors({
   optionsSuccessStatus: 204,
 }));
 
-// Preflight dla wszystkiego
-app.options('/*', cors());
-
 
 // Logi HTTP
 if (process.env.NODE_ENV !== 'production') {
