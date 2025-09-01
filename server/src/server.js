@@ -20,36 +20,49 @@ const pushRoutes = require('./routes/push');
 
 const app = express();
 
-// CORS
+// --- CORS ---
 const CLIENT = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
-const STATIC_ALLOWED = new Set([
-  CLIENT,
+
+const ALLOWED_ORIGINS = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-]);
+  CLIENT,
+  'https://elk-festival.netlify.app',
+].filter(Boolean));
+
+// Podpowiedz dla proxy/CDN, że odpowiedź zależy od Origin
+app.use((req, res, next) => {
+  res.setHeader('Vary', 'Origin');
+  next();
+});
 
 app.use(cors({
   origin(origin, cb) {
-    // Brak nagłówka Origin (np. curl) -> zezwól
+    // brak Origin (np. curl) -> OK
     if (!origin) return cb(null, true);
-
     try {
       const u = new URL(origin);
-      const host = u.hostname;
-
       const allowed =
-        STATIC_ALLOWED.has(origin) ||
-        host.endsWith('.netlify.app') ||
-        host.endsWith('.netlify.com');
+        ALLOWED_ORIGINS.has(origin) ||
+        u.hostname.endsWith('.netlify.app') || // wszystkie subdomeny Netlify
+        u.hostname.endsWith('.netlify.com');
+
+      // jeśli nie jest dozwolone — po prostu brak nagłówków CORS
       return cb(null, !!allowed);
     } catch {
       return cb(null, false);
     }
   },
+  credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
-  credentials: true,
+  maxAge: 86400,
+  optionsSuccessStatus: 204,
 }));
+
+// Preflight dla wszystkiego
+app.options('*', cors());
+
 
 // Logi HTTP
 if (process.env.NODE_ENV !== 'production') {
