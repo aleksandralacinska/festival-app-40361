@@ -61,7 +61,7 @@ app.use(cors({
 }));
 
 // Preflight dla wszystkiego
-app.options('*', cors());
+app.options('/*', cors());
 
 
 // Logi HTTP
