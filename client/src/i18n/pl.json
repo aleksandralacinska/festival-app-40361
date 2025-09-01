@@ -57,6 +57,14 @@
   "notifications_toast_disable_failed": "Błąd wyłączania powiadomień",
   "notifications_toast_permission_denied": "Powiadomienia zablokowane w przeglądarce.",
 
-  "notifications_permission_blocked_hint": "Zmień uprawnienia w ustawieniach przeglądarki, aby włączyć powiadomienia."
+  "notifications_permission_blocked_hint": "Zmień uprawnienia w ustawieniach przeglądarki, aby włączyć powiadomienia.",
   
+  "app_install": "Instalacja aplikacji",
+  "install": "Zainstaluj aplikację",
+  "install_info1": "Na iPhonie/iPadzie: stuknij ",
+  "install_info2": "Udostępnij",
+  "install_info3": " (ikona ",
+  "install_info4": ") i wybierz ",
+  "install_info5": "Do ekranu początkowego",
+  "install_announcement": "Jeśli przycisk nie jest dostępny, przeglądarka może nie wspierać instalacji PWA na tym urządzeniu."
 }

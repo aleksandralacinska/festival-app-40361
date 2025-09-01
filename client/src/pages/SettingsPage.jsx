@@ -235,23 +235,23 @@ export default function SettingsPage() {
           {/* Instalacja PWA */}
           {!installed && (
             <div className="card" style={{ display: 'grid', gap: 12 }}>
-              <div style={{ fontWeight: 700 }}>Instalacja aplikacji</div>
+              <div style={{ fontWeight: 700 }}>{t('app_install')}</div>
 
               {canInstall && (
                 <button className="btn" onClick={onInstallClick}>
-                  Zainstaluj aplikację/Install application
+                  {t('install')}
                 </button>
               )}
 
               {showIOSHint && (
                 <small style={{ color: 'var(--gray-700)' }}>
-                  Na iPhonie/iPadzie: stuknij <b>Udostępnij</b> (ikona <i className="fa-solid fa-share-from-square" aria-hidden />) i wybierz <b>„Do ekranu początkowego”</b>.
+                  {t('install_info1')}<b>{t('install_info2')}</b>{t('install_info3')}<i className="fa-solid fa-share-from-square" aria-hidden />{t('install_info4')}<b>{t('install_info5')}</b>.
                 </small>
               )}
 
               {!canInstall && !showIOSHint && (
                 <small style={{ color: 'var(--gray-700)' }}>
-                  Jeśli przycisk nie jest dostępny, przeglądarka może nie wspierać instalacji PWA na tym urządzeniu.
+                  {t('install_announcement')}
                 </small>
               )}
             </div>

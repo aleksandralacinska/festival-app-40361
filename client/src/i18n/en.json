@@ -57,6 +57,14 @@
   "notifications_toast_disable_failed": "Failed to disable notifications.",
   "notifications_toast_permission_denied": "Notifications permission denied.",
 
-  "notifications_permission_blocked_hint": "Change permissions in your browser settings to enable notifications."
+  "notifications_permission_blocked_hint": "Change permissions in your browser settings to enable notifications.",
   
+  "app_install": "App installation",
+  "install": "Install application",
+  "install_info1": "On iPhone/iPad: Tap ",
+  "install_info2": "Share",
+  "install_info3": " (the ",
+  "install_info4": " icon) and select ",
+  "install_info5": "To Home Screen",
+  "install_announcement": "If the button is not available, your browser may not support PWA installation on this device."
 }
